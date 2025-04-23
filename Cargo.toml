@@ -1,0 +1,8 @@
+[package]
+name = "vmf"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+chumsky = "0.10"
+thiserror = "2.0"
