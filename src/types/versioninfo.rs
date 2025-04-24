@@ -15,6 +15,7 @@ pub struct VersionInfo {
 }
 
 impl VersionInfo {
+    /// Crates a new [`VersionInfo`] instance.
     pub fn new(
         version: u32,
         build: u32,
@@ -32,7 +33,7 @@ impl VersionInfo {
     }
 }
 
-/// A `VMFParser` implementation for VersionInfo.
+/// A [`VMFParser`] implementation for [`VersionInfo`].
 /// Every key-value pair needs to be in order, like in the example bellow.
 ///
 /// usage: `let version_info = VersionInfo::parser().parse();`.

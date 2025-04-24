@@ -1,6 +1,7 @@
 use chumsky::error::{Error as ChumError, Rich};
 use thiserror::Error;
 
+// TODO: Implement a custom chumsky error
 #[derive(Error, Debug)]
 pub enum VMFParserError {
     #[error("VMF Parser Error: {0}")]
