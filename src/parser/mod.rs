@@ -2,12 +2,12 @@ pub(crate) mod error;
 
 use chumsky::{
     combinator::Repeated,
-    error::Rich,
+    error::{Rich, RichReason},
     extra,
     prelude::{just, none_of, one_of},
     primitive::OneOf,
     span::SimpleSpan,
-    text, IterParser, Parser,
+    text, IterParser, Parser as ChumskyParser,
 };
 use error::VMFParserError;
 
@@ -20,16 +20,32 @@ pub enum VmfKeyValue {
     Array(Vec<VmfKeyValue>),
 }
 
+/// An internal trait for implementing chumsky parsers.
+/// We would then simply call parser().parse(input) on it and get the structure.
+pub(crate) trait InternalParser<'src, I>: Sized {
+    fn parser() -> impl ChumskyParser<'src, &'src str, I, extra::Err<Rich<'src, char>>>;
+}
+
 /// A trait that should be implemented on all VMF block types.
-/// We woulc then simply call parser().parse() on it and get the structure.
 ///
-/// example: `let version_info = VersionInfo::parser().parse();`
-pub(crate) trait VMFParser<I>: Sized {
-    fn parser<'src>() -> impl Parser<'src, &'src str, I, extra::Err<Rich<'src, char>>>;
+/// example: `let version_info = VersionInfo::parse(input);`
+///
+// We don't expect anyone to implement VMF parsing outside of this crate,
+// so we have the Parser require InternalParser.
+#[allow(private_bounds)]
+pub trait Parser<'src, I>: InternalParser<'src, I> {
+    fn parse(src: &'src str) -> Result<I, Vec<RichReason<'src, char>>> {
+        let result = <Self as InternalParser<'src, I>>::parser().parse(src);
+        if result.has_errors() {
+            Err(result.errors().map(|e| e.reason().clone()).collect())
+        } else {
+            Ok(result.unwrap())
+        }
+    }
 }
 
 /// Parse a number `T` from either `123` or `"123"`.
-fn number<'a, T>() -> impl Parser<'a, &'a str, T, extra::Err<Rich<'a, char>>>
+pub(crate) fn number<'a, T>() -> impl ChumskyParser<'a, &'a str, T, extra::Err<Rich<'a, char>>>
 where
     T: std::str::FromStr,
 {
@@ -44,18 +60,19 @@ where
 }
 
 /// Parse a boolean literal: `true` or `false`.
-fn boolean<'a>() -> impl Parser<'a, &'a str, bool, extra::Err<Rich<'a, char>>> {
+pub(crate) fn boolean<'a>() -> impl ChumskyParser<'a, &'a str, bool, extra::Err<Rich<'a, char>>> {
     just("true").to(true).or(just("false").to(false))
 }
 
 /// Parses a white space (or many).
-pub(crate) fn whitespace<'src>() -> impl Parser<'src, &'src str, (), extra::Err<Rich<'src, char>>> {
+pub(crate) fn whitespace<'src>(
+) -> impl ChumskyParser<'src, &'src str, (), extra::Err<Rich<'src, char>>> {
     one_of(" \t\n\r").repeated().ignored()
 }
 
 /// Parses any string, that is surrounded by quotes.
 pub(crate) fn any_quoted_string<'src>(
-) -> impl Parser<'src, &'src str, String, extra::Err<Rich<'src, char>>> {
+) -> impl ChumskyParser<'src, &'src str, String, extra::Err<Rich<'src, char>>> {
     just('"')
         .ignore_then(none_of('"').repeated().collect::<String>())
         .then_ignore(just('"'))
@@ -63,7 +80,9 @@ pub(crate) fn any_quoted_string<'src>(
 
 /// Parses an exact string `input`, that is surrounded by quotes.
 /// This is usefull when searching for strings, or whne looking up a key-value pair.
-pub(crate) fn quoted_string(input: &str) -> impl Parser<&str, String, extra::Err<Rich<'_, char>>> {
+pub(crate) fn quoted_string(
+    input: &str,
+) -> impl ChumskyParser<&str, String, extra::Err<Rich<'_, char>>> {
     just('"')
         .ignore_then(just(input))
         .then_ignore(just('"'))
@@ -72,13 +91,15 @@ pub(crate) fn quoted_string(input: &str) -> impl Parser<&str, String, extra::Err
 
 /// Takes a `key` string value, and tries to get a value.
 /// The format of this is: "key" "string".
-pub(crate) fn key_value(key: &str) -> impl Parser<&str, String, extra::Err<Rich<'_, char>>> {
+pub(crate) fn key_value(key: &str) -> impl ChumskyParser<&str, String, extra::Err<Rich<'_, char>>> {
     quoted_string(key).padded().ignore_then(any_quoted_string())
 }
 
 /// Takes a `key` string value, and tries to get a number value.
 /// The format of this is: "key" "10"
-pub(crate) fn key_value_numeric<T>(key: &str) -> impl Parser<&str, T, extra::Err<Rich<'_, char>>>
+pub(crate) fn key_value_numeric<T>(
+    key: &str,
+) -> impl ChumskyParser<&str, T, extra::Err<Rich<'_, char>>>
 where
     T: std::str::FromStr,
 {
@@ -93,7 +114,7 @@ where
 /// example:
 /// versioninfo
 /// {
-pub(crate) fn open_block(block: &str) -> impl Parser<&str, (), extra::Err<Rich<'_, char>>> {
+pub(crate) fn open_block(block: &str) -> impl ChumskyParser<&str, (), extra::Err<Rich<'_, char>>> {
     just(block)
         .ignore_then(whitespace())
         .ignore_then(just('{'))
@@ -101,8 +122,8 @@ pub(crate) fn open_block(block: &str) -> impl Parser<&str, (), extra::Err<Rich<'
 }
 
 /// Closes a previously [`open_block`]. It just ignores the whitespace and the closing bracket.
-pub(crate) fn close_block<'src>() -> impl Parser<'src, &'src str, (), extra::Err<Rich<'src, char>>>
-{
+pub(crate) fn close_block<'src>(
+) -> impl ChumskyParser<'src, &'src str, (), extra::Err<Rich<'src, char>>> {
     whitespace().ignore_then(just('}')).ignored()
 }
 

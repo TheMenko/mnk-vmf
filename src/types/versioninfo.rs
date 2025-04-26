@@ -1,8 +1,8 @@
-use chumsky::{prelude::*, span::Span, Parser};
+use chumsky::{prelude::*, span::Span, Parser as ChumskyParser};
 
 use crate::parser::{
     close_block, error::VMFParserError, key_value, key_value_numeric, open_block, whitespace,
-    VMFParser,
+    InternalParser, Parser,
 };
 
 /// `VersionInfo` holds the VMF Header information.
@@ -34,7 +34,10 @@ impl VersionInfo {
     }
 }
 
-/// A [`VMFParser`] implementation for [`VersionInfo`].
+/// Public parser trait implementation that allows [`VersionInfo`] to use ::parse(input) call.
+impl<'src> Parser<'src, VersionInfo> for VersionInfo {}
+
+/// A [`InternalParser`] implementation for [`VersionInfo`].
 /// Every key-value pair needs to be in order, like in the example bellow.
 ///
 /// usage: `let version_info = VersionInfo::parser().parse();`.
@@ -48,8 +51,8 @@ impl VersionInfo {
 /// "formatversion" "100"
 /// "prefab" "0"
 /// }
-impl VMFParser<VersionInfo> for VersionInfo {
-    fn parser<'src>() -> impl Parser<'src, &'src str, Self, extra::Err<Rich<'src, char>>> {
+impl<'src> InternalParser<'src, VersionInfo> for VersionInfo {
+    fn parser() -> impl ChumskyParser<'src, &'src str, Self, extra::Err<Rich<'src, char>>> {
         open_block("versioninfo")
             .ignored()
             .then(key_value_numeric::<u32>("editorversion"))
