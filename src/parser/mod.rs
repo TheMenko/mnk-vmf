@@ -28,15 +28,19 @@ pub(crate) trait VMFParser<I>: Sized {
     fn parser<'src>() -> impl Parser<'src, &'src str, I, extra::Err<Rich<'src, char>>>;
 }
 
-/// Parse any number that can be parsed from a string.
+/// Parse a number `T` from either `123` or `"123"`.
 fn number<'a, T>() -> impl Parser<'a, &'a str, T, extra::Err<Rich<'a, char>>>
 where
     T: std::str::FromStr,
 {
-    text::int(10).try_map(|s: &str, span| {
+    let bare = text::int(10).try_map(|s: &str, span| {
         s.parse::<T>()
             .map_err(|_| Rich::custom(span, "integer out of range"))
-    })
+    });
+
+    let quoted = just('"').ignore_then(bare).then_ignore(just('"'));
+
+    quoted.or(bare)
 }
 
 /// Parse a boolean literal: `true` or `false`.
@@ -78,7 +82,9 @@ pub(crate) fn key_value_numeric<T>(key: &str) -> impl Parser<&str, T, extra::Err
 where
     T: std::str::FromStr,
 {
-    quoted_string(key).padded().ignore_then(number::<T>())
+    quoted_string(key)
+        .padded()
+        .ignore_then(number::<T>().padded())
 }
 
 /// Starts a parser on VMF blocks. VMF block usually starts with a key, then new line and open
@@ -88,11 +94,143 @@ where
 /// versioninfo
 /// {
 pub(crate) fn open_block(block: &str) -> impl Parser<&str, (), extra::Err<Rich<'_, char>>> {
-    just(block).padded().ignore_then(just('{')).ignored()
+    just(block)
+        .ignore_then(whitespace())
+        .ignore_then(just('{'))
+        .ignored()
 }
 
 /// Closes a previously [`open_block`]. It just ignores the whitespace and the closing bracket.
 pub(crate) fn close_block<'src>() -> impl Parser<'src, &'src str, (), extra::Err<Rich<'src, char>>>
 {
     whitespace().ignore_then(just('}')).ignored()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use chumsky::Parser;
+
+    #[test]
+    fn test_number() {
+        let r = number::<u32>().parse("0");
+        assert!(!r.has_errors());
+        assert_eq!(r.unwrap(), 0);
+
+        let r = number::<u32>().parse("12345");
+        assert!(!r.has_errors());
+        assert_eq!(r.unwrap(), 12345);
+
+        // out of range
+        let r = number::<u8>().parse("300");
+        assert!(r.has_errors());
+
+        // non‐digit
+        let r = number::<u32>().parse("abc");
+        assert!(r.has_errors());
+    }
+
+    #[test]
+    fn test_boolean() {
+        let r = boolean().parse("true");
+        assert!(!r.has_errors());
+        assert!(r.unwrap());
+
+        let r = boolean().parse("false");
+        assert!(!r.has_errors());
+        assert!(!r.unwrap());
+
+        let r = boolean().parse("yes");
+        assert!(r.has_errors());
+    }
+
+    #[test]
+    fn test_whitespace() {
+        assert!(!whitespace().parse("    ").has_errors());
+        assert!(!whitespace().parse("\t\n\r").has_errors());
+        assert!(!whitespace().parse("").has_errors());
+
+        assert!(whitespace().parse("x").has_errors());
+    }
+
+    #[test]
+    fn test_any_quoted_string() {
+        let r = any_quoted_string().parse("\"hello\"");
+        assert!(!r.has_errors());
+        assert_eq!(r.unwrap(), "hello".to_string());
+
+        let r = any_quoted_string().parse("\"\"");
+        assert!(!r.has_errors());
+        assert_eq!(r.unwrap(), "".to_string());
+
+        // missing closing quote
+        assert!(any_quoted_string().parse("\"abc").has_errors());
+    }
+
+    #[test]
+    fn test_quoted_string() {
+        let r = quoted_string("foo").parse("\"foo\"");
+        assert!(!r.has_errors());
+        assert_eq!(r.unwrap(), "foo".to_string());
+
+        // wrong literal
+        assert!(quoted_string("foo").parse("\"bar\"").has_errors());
+    }
+
+    #[test]
+    fn test_key_value() {
+        let r = key_value("key").parse("\"key\" \"value\"");
+        assert!(!r.has_errors());
+        assert_eq!(r.unwrap(), "value".to_string());
+
+        // no space between
+        let r = key_value("key").parse("\"key\"\"v\"");
+        assert!(!r.has_errors());
+        assert_eq!(r.unwrap(), "v".to_string());
+
+        // wrong key
+        assert!(key_value("key").parse("\"other\" \"value\"").has_errors());
+    }
+
+    #[test]
+    fn test_key_value_numeric() {
+        let r = key_value_numeric::<u32>("num").parse("\"num\" \"10\"");
+        assert!(!r.has_errors());
+        assert_eq!(r.unwrap(), 10);
+
+        let r = key_value_numeric::<u32>("num").parse("\"num\" \"20\"");
+        assert!(!r.has_errors());
+        assert_eq!(r.unwrap(), 20);
+
+        // wrong key
+        assert!(key_value_numeric::<u32>("num")
+            .parse("\"x\" \"5\"")
+            .has_errors());
+
+        // non‐numeric
+        assert!(key_value_numeric::<u32>("num")
+            .parse("\"num\" \"abc\"")
+            .has_errors());
+    }
+
+    #[test]
+    fn test_open_close_block() {
+        // open_block
+        let r = open_block("blk").parse("blk{");
+        assert!(!r.has_errors());
+
+        let r = open_block("blk").parse("blk {");
+        assert!(!r.has_errors());
+
+        // close_block
+        let r = close_block().parse("}");
+        assert!(!r.has_errors());
+
+        let r = close_block().parse(" }");
+        assert!(!r.has_errors());
+
+        // errors
+        assert!(open_block("x").parse("y{").has_errors());
+        assert!(close_block().parse("]").has_errors());
+    }
 }

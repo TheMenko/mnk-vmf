@@ -1,7 +1,8 @@
 use chumsky::{prelude::*, span::Span, Parser};
 
 use crate::parser::{
-    close_block, error::VMFParserError, key_value, open_block, whitespace, VMFParser,
+    close_block, error::VMFParserError, key_value, key_value_numeric, open_block, whitespace,
+    VMFParser,
 };
 
 /// `VersionInfo` holds the VMF Header information.
@@ -50,62 +51,14 @@ impl VersionInfo {
 impl VMFParser<VersionInfo> for VersionInfo {
     fn parser<'src>() -> impl Parser<'src, &'src str, Self, extra::Err<Rich<'src, char>>> {
         open_block("versioninfo")
-            .ignore_then(
-                key_value("editorversion")
-                    .try_map(|ev, span| {
-                        Ok(VersionInfo {
-                            editor_version: ev.parse::<u32>().map_err(|e| {
-                                Rich::custom(span, "Could not parse a u32 value for editor_version")
-                            })?,
-                            editor_build: 0,
-                            map_version: 0,
-                            format_version: 0,
-                            prefab: 0,
-                        })
-                    })
-                    .then_ignore(whitespace())
-                    .then(key_value("editorbuild"))
-                    .try_map(|(info, eb), span| {
-                        Ok(VersionInfo {
-                            editor_build: eb.parse::<u32>().map_err(|e| {
-                                Rich::custom(span, "Could not parse a u32 value for editor_build")
-                            })?,
-                            ..info
-                        })
-                    })
-                    .then_ignore(whitespace())
-                    .then(key_value("mapversion"))
-                    .try_map(|(info, mv), span| {
-                        Ok(VersionInfo {
-                            map_version: mv.parse::<u16>().map_err(|e| {
-                                Rich::custom(span, "Could not parse a u8 value for map_version")
-                            })?,
-                            ..info
-                        })
-                    })
-                    .then_ignore(whitespace())
-                    .then(key_value("formatversion"))
-                    .try_map(|(info, fv), span| {
-                        Ok(VersionInfo {
-                            format_version: fv.parse::<u16>().map_err(|e| {
-                                Rich::custom(span, "Could not parse a u8 value for format_version")
-                            })?,
-                            ..info
-                        })
-                    })
-                    .then_ignore(whitespace())
-                    .then(key_value("prefab"))
-                    .try_map(|(info, prefab), span| {
-                        Ok(VersionInfo {
-                            prefab: prefab.parse::<u32>().map_err(|e| {
-                                Rich::custom(span, "Could not parse a u32 value for prefab")
-                            })?,
-                            ..info
-                        })
-                    })
-                    .then_ignore(whitespace())
-                    .then_ignore(close_block()),
-            )
+            .ignored()
+            .then(key_value_numeric::<u32>("editorversion"))
+            .then(key_value_numeric::<u32>("editorbuild"))
+            .then(key_value_numeric::<u16>("mapversion"))
+            .then(key_value_numeric::<u16>("formatversion"))
+            .then(key_value_numeric::<u32>("prefab"))
+            .map(|(((((_, vi), eb), mv), fv), pf)| VersionInfo::new(vi, eb, mv, fv, pf))
+            .then_ignore(close_block())
             .boxed()
     }
 }
