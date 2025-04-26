@@ -1,5 +1,6 @@
 #![allow(dead_code, unused)]
-
-pub mod parser;
+mod parser;
 pub mod types;
 pub mod vmf;
+
+pub use parser::Parser;
