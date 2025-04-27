@@ -35,7 +35,7 @@ impl VersionInfo {
 }
 
 /// Public parser trait implementation that allows [`VersionInfo`] to use ::parse(input) call.
-impl<'src> Parser<'src, VersionInfo> for VersionInfo {}
+impl Parser<'_, VersionInfo> for VersionInfo {}
 
 /// A [`InternalParser`] implementation for [`VersionInfo`].
 /// Every key-value pair needs to be in order, like in the example bellow.

@@ -37,7 +37,7 @@ impl VMF {
     }
 
     pub fn as_str(&self) -> Result<&str, std::str::Utf8Error> {
-        Ok(std::str::from_utf8(&self.mmap)?)
+        std::str::from_utf8(&self.mmap)
     }
 }
 
