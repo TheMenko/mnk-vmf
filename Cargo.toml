@@ -7,6 +7,10 @@ edition = "2021"
 name = "versioninfo"
 harness = false
 
+[[bench]]
+name = "color"
+harness = false
+
 [dependencies]
 chumsky = "0.10"
 memmap2 = "0.9"

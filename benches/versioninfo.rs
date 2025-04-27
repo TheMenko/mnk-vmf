@@ -1,5 +1,5 @@
 use criterion::{criterion_group, criterion_main, Criterion};
-use vmf::{parser::Parser, types::VersionInfo};
+use vmf::{types::VersionInfo, Parser};
 
 fn bench_versioninfo(c: &mut Criterion) {
     let vinfo = r#"versioninfo
