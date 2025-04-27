@@ -22,8 +22,8 @@ pub enum VmfKeyValue {
 
 /// An internal trait for implementing chumsky parsers.
 /// We would then simply call parser().parse(input) on it and get the structure.
-pub(crate) trait InternalParser<'src, I>: Sized {
-    fn parser() -> impl ChumskyParser<'src, &'src str, I, extra::Err<Rich<'src, char>>>;
+pub(crate) trait InternalParser<'src>: Sized {
+    fn parser() -> impl ChumskyParser<'src, &'src str, Self, extra::Err<Rich<'src, char>>>;
 }
 
 /// A trait that should be implemented on all VMF block types.
@@ -33,9 +33,9 @@ pub(crate) trait InternalParser<'src, I>: Sized {
 // We don't expect anyone to implement VMF parsing outside of this crate,
 // so we have the Parser require InternalParser.
 #[allow(private_bounds)]
-pub trait Parser<'src, I>: InternalParser<'src, I> {
-    fn parse(src: &'src str) -> Result<I, Vec<RichReason<'src, char>>> {
-        let result = <Self as InternalParser<'src, I>>::parser().parse(src);
+pub trait Parser<'src>: InternalParser<'src> {
+    fn parse(src: &'src str) -> Result<Self, Vec<RichReason<'src, char>>> {
+        let result = <Self as InternalParser<'src>>::parser().parse(src);
         if result.has_errors() {
             Err(result.errors().map(|e| e.reason().clone()).collect())
         } else {

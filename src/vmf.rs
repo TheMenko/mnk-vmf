@@ -43,10 +43,34 @@ impl VMF {
 
 #[cfg(test)]
 mod tests {
+    use chumsky::Parser as _;
+
+    use crate::{parser::InternalParser, Parser};
+
     use super::*;
 
     #[test]
     fn load() {
         VMF::new(std::path::Path::new("test.vmf")).expect("Failed to open VMF file.");
+    }
+
+    #[test]
+    fn parse_versioninfo_and_color_together() {
+        let src = r#"versioninfo
+{
+    "editorversion"  "400"
+    "editorbuild"    "6157"
+    "mapversion"     "16"
+    "formatversion"  "100"
+    "prefab"         "0"
+}
+    "color"          "255 0 0"
+"#;
+
+        let parser = VersionInfo::parser().then(Color::parser());
+
+        let result = parser.parse(src).unwrap();
+
+        println!("{:?} {:?}", result.0, result.1);
     }
 }

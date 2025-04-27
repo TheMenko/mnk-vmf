@@ -8,11 +8,11 @@ use crate::parser::{
 /// `VersionInfo` holds the VMF Header information.
 #[derive(Clone, Debug)]
 pub struct VersionInfo {
-    editor_version: u32,
-    editor_build: u32,
-    map_version: u16,
-    format_version: u16,
-    prefab: u32,
+    pub editor_version: u32,
+    pub editor_build: u32,
+    pub map_version: u16,
+    pub format_version: u16,
+    pub prefab: u32,
 }
 
 impl VersionInfo {
@@ -35,7 +35,7 @@ impl VersionInfo {
 }
 
 /// Public parser trait implementation that allows [`VersionInfo`] to use ::parse(input) call.
-impl Parser<'_, VersionInfo> for VersionInfo {}
+impl Parser<'_> for VersionInfo {}
 
 /// A [`InternalParser`] implementation for [`VersionInfo`].
 /// Every key-value pair needs to be in order, like in the example bellow.
@@ -51,7 +51,7 @@ impl Parser<'_, VersionInfo> for VersionInfo {}
 /// "formatversion" "100"
 /// "prefab" "0"
 /// }
-impl<'src> InternalParser<'src, VersionInfo> for VersionInfo {
+impl<'src> InternalParser<'src> for VersionInfo {
     fn parser() -> impl ChumskyParser<'src, &'src str, Self, extra::Err<Rich<'src, char>>> {
         open_block("versioninfo")
             .ignored()

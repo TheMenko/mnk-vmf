@@ -14,7 +14,7 @@ pub struct Color {
 }
 
 /// Public parser trait implementation that allows [`Color`] to use ::parse(input) call.
-impl Parser<'_, Color> for Color {}
+impl Parser<'_> for Color {}
 
 /// A [`InternalParser`] implementation for [`Color`].
 /// Every key-value pair needs to be in order, like in the example bellow.
@@ -23,7 +23,7 @@ impl Parser<'_, Color> for Color {}
 ///
 /// The format that is being parsed here is:
 /// "color" "10 100 250"
-impl<'src> InternalParser<'src, Color> for Color {
+impl<'src> InternalParser<'src> for Color {
     fn parser() -> impl ChumskyParser<'src, &'src str, Self, extra::Err<Rich<'src, char>>> {
         quoted_string("color")
             .padded()
