@@ -1,6 +1,6 @@
 use logos::Logos;
 
-#[derive(Logos, Clone, PartialEq)]
+#[derive(Logos, Debug, Copy, Clone, PartialEq)]
 pub enum Token<'a> {
     Error,
 

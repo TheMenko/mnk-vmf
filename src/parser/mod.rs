@@ -5,15 +5,13 @@ use chumsky::{
     combinator::Repeated,
     error::{Rich, RichReason},
     extra,
+    input::{Stream, ValueInput},
     prelude::{just, none_of, one_of},
     primitive::OneOf,
     span::SimpleSpan,
     text, IterParser, Parser as ChumskyParser,
 };
 use error::VMFParserError;
-
-type Token<'src> = (lexer::Token<'src>, std::ops::Range<usize>);
-type TokErr<'src> = Rich<'src, lexer::Token<'src>, usize>;
 
 #[derive(Debug, PartialEq)]
 pub enum VmfKeyValue {
@@ -24,10 +22,26 @@ pub enum VmfKeyValue {
     Array(Vec<VmfKeyValue>),
 }
 
+/// A shorthand alias for any input source that produces our `lexer::Token` values
+/// along with `SimpleSpan` offsets, and supports value-based parsing (cloning tokens).
+///
+/// This trait is automatically implemented for any `I` that satisfies:
+/// ```ignore
+/// I: ValueInput<'src, Token = lexer::Token<'src>, Span = SimpleSpan>
+/// ```
+///
+/// This is a helper trait for a Chumsky parser over tokens, so we dont have
+/// to spell out the bound everywhere.
+pub(crate) trait TokenSource<'src>:
+    ValueInput<'src, Token = lexer::Token<'src>, Span = SimpleSpan>;
+pub(crate) type TokenError<'src> = extra::Err<Rich<'src, lexer::Token<'src>>>;
+
 /// An internal trait for implementing chumsky parsers.
 /// We would then simply call parser().parse(input) on it and get the structure.
 pub(crate) trait InternalParser<'src>: Sized {
-    fn parser() -> impl ChumskyParser<'src, &'src str, Self, extra::Err<Rich<'src, char>>>;
+    fn parser<I>() -> impl ChumskyParser<'src, I, Self, TokenError<'src>>
+    where
+        I: TokenSource<'src>;
 }
 
 /// A trait that should be implemented on all VMF block types.
@@ -39,7 +53,7 @@ pub(crate) trait InternalParser<'src>: Sized {
 #[allow(private_bounds)]
 pub trait Parser<'src>: InternalParser<'src> {
     fn parse(src: &'src str) -> Result<Self, Vec<RichReason<'src, char>>> {
-        let result = <Self as InternalParser<'src>>::parser().parse(src);
+        let result = <Self as InternalParser<'src>>::parser::<_>().parse(src);
         if result.has_errors() {
             Err(result.errors().map(|e| e.reason().clone()).collect())
         } else {
