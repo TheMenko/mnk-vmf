@@ -1,4 +1,5 @@
 pub(crate) mod error;
+mod lexer;
 
 use chumsky::{
     combinator::Repeated,
@@ -10,6 +11,9 @@ use chumsky::{
     text, IterParser, Parser as ChumskyParser,
 };
 use error::VMFParserError;
+
+type Token<'src> = (lexer::Token<'src>, std::ops::Range<usize>);
+type TokErr<'src> = Rich<'src, lexer::Token<'src>, usize>;
 
 #[derive(Debug, PartialEq)]
 pub enum VmfKeyValue {

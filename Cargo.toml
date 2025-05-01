@@ -13,7 +13,7 @@ harness = false
 
 [dependencies]
 chumsky = "0.10"
-logos = "*"
+logos = "0.15"
 memmap2 = "0.9"
 thiserror = "2.0"
 
