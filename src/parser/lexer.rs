@@ -7,13 +7,12 @@ pub enum Token<'a> {
     #[token("\"")]
     Quote,
 
-    #[regex(r#""([^"\\]|\\.)*""#, |lex| lex.slice())]
-    QuotedText(&'a str),
-
-    #[regex(r"[+-]?([0-9]*[.])?[0-9]+", priority = 2)]
+    //#[regex(r#"([^"\\]|\\.)*"#)]
+    //Text,
+    #[regex(r"[+-]?([0-9]*[.])?[0-9]+", priority = 1)]
     Float(&'a str),
 
-    #[regex(r"[0-9]+", priority = 1)]
+    #[regex(r"[0-9]+", priority = 2)]
     Number(&'a str),
 
     #[regex(r"[A-Za-z_][A-Za-z0-9_]*")]

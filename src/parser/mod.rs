@@ -100,10 +100,13 @@ pub(crate) fn boolean<'a, I>() -> impl ChumskyParser<'a, I, bool, TokenError<'a>
 where
     I: TokenSource<'a>,
 {
-    select! {
-        lexer::Token::QuotedText("true") => true,
-        lexer::Token::QuotedText("false") => false,
-    }
+    quoted_string("true")
+        .or(quoted_string("false"))
+        .map(|v| match v.as_ref() {
+            "true" => true,
+            "false" => false,
+            _ => unreachable!(),
+        })
 }
 
 /// Parses a white space (or many).
@@ -121,9 +124,9 @@ pub(crate) fn any_quoted_string<'src, I>() -> impl ChumskyParser<'src, I, String
 where
     I: TokenSource<'src>,
 {
-    select! {
-        lexer::Token::QuotedText(text) => text.to_string()
-    }
+    just(lexer::Token::Quote)
+        .ignore_then(select! { lexer::Token::Ident(s) => s.to_string() })
+        .then_ignore(just(lexer::Token::Quote))
 }
 
 /// Parses an exact string `input`, that is surrounded by quotes.
@@ -134,10 +137,13 @@ pub(crate) fn quoted_string<'src, I>(
 where
     I: TokenSource<'src>,
 {
-    just(lexer::Token::QuotedText(input)).map(|v| match v {
-        lexer::Token::QuotedText(value) => value.to_string(),
-        _ => unreachable!(),
-    })
+    just(lexer::Token::Quote)
+        .ignore_then(just(lexer::Token::Ident(input)))
+        .then_ignore(just(lexer::Token::Quote))
+        .map(|tok| match tok {
+            lexer::Token::Ident(s) => s.to_string(),
+            _ => unreachable!("only Token::Ident can reach this point"),
+        })
 }
 
 /// Takes a `key` string value, and tries to get a value.
@@ -226,7 +232,7 @@ mod tests {
     #[test]
     fn test_key_value_numeric() {
         let tokens = lex(r#""num" "42""#);
-        let stream = Stream::from_iter(tokens.into_iter());
+        let stream = Stream::from_iter(tokens);
         let mut result = key_value_numeric::<u32, _>("num").parse(stream);
         assert!(!result.has_errors());
         assert_eq!(result.unwrap(), 42);
@@ -235,12 +241,12 @@ mod tests {
     #[test]
     fn test_open_close_block() {
         let tokens = lex("blk{");
-        let stream = Stream::from_iter(tokens.into_iter());
+        let stream = Stream::from_iter(tokens);
         let mut r1 = open_block("blk").parse(stream);
         assert!(!r1.has_errors());
 
         let tokens = lex("}");
-        let stream = Stream::from_iter(tokens.into_iter());
+        let stream = Stream::from_iter(tokens);
         let mut r2 = close_block().parse(stream);
         assert!(!r2.has_errors());
     }
