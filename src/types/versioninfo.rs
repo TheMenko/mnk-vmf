@@ -1,8 +1,8 @@
 use chumsky::{prelude::*, span::Span, Parser as ChumskyParser};
 
 use crate::parser::{
-    close_block, error::VMFParserError, key_value, key_value_numeric, open_block, whitespace,
-    InternalParser, Parser,
+    close_block, error::VMFParserError, key_value, key_value_numeric, lexer, open_block,
+    whitespace, InternalParser, Parser, TokenError, TokenSource,
 };
 
 /// `VersionInfo` holds the VMF Header information.
@@ -52,14 +52,17 @@ impl Parser<'_> for VersionInfo {}
 /// "prefab" "0"
 /// }
 impl<'src> InternalParser<'src> for VersionInfo {
-    fn parser() -> impl ChumskyParser<'src, &'src str, Self, extra::Err<Rich<'src, char>>> {
+    fn parser<I>() -> impl ChumskyParser<'src, I, Self, TokenError<'src>>
+    where
+        I: TokenSource<'src>,
+    {
         open_block("versioninfo")
             .ignored()
-            .then(key_value_numeric::<u32>("editorversion"))
-            .then(key_value_numeric::<u32>("editorbuild"))
-            .then(key_value_numeric::<u16>("mapversion"))
-            .then(key_value_numeric::<u16>("formatversion"))
-            .then(key_value_numeric::<u32>("prefab"))
+            .then(key_value_numeric::<u32, I>("editorversion"))
+            .then(key_value_numeric::<u32, I>("editorbuild"))
+            .then(key_value_numeric::<u16, I>("mapversion"))
+            .then(key_value_numeric::<u16, I>("formatversion"))
+            .then(key_value_numeric::<u32, I>("prefab"))
             .map(|(((((_, vi), eb), mv), fv), pf)| VersionInfo::new(vi, eb, mv, fv, pf))
             .then_ignore(close_block())
             .boxed()
@@ -69,21 +72,27 @@ impl<'src> InternalParser<'src> for VersionInfo {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use chumsky::Parser;
+    use chumsky::{input::Stream, Parser};
+    use logos::Logos as _;
+
+    fn lex(input: &str) -> Vec<lexer::Token> {
+        lexer::Token::lexer(input).map(|tok| tok.unwrap()).collect()
+    }
 
     #[test]
     fn test_version_info_parser() {
         // Valid input
-        let input = r#"versioninfo
+        let input = lex(r#"versioninfo
                     {
                         "editorversion" "400"
                         "editorbuild" "6157"
                         "mapversion" "16"
                         "formatversion" "100"
                         "prefab" "0"
-                    }"#;
+                    }"#);
+        let stream = Stream::from_iter(input);
 
-        let result = VersionInfo::parser().parse(input);
+        let result = VersionInfo::parser().parse(stream);
         assert!(
             !result.has_errors(),
             "Parser failed with error: {:?}",
@@ -98,7 +107,10 @@ mod tests {
         assert_eq!(version_info.prefab, 0);
 
         // Test with different whitespace patterns
-        let compact_input = r#"versioninfo{"editorversion""500""editorbuild""7000""mapversion""20""formatversion""110""prefab""1"}"#;
+        let compact_input = lex(
+            r#"versioninfo{"editorversion""500""editorbuild""7000""mapversion""20""formatversion""110""prefab""1"}"#,
+        );
+        let compact_input = Stream::from_iter(compact_input);
         let compact_result = VersionInfo::parser().parse(compact_input);
         assert!(
             !compact_result.has_errors(),
@@ -107,13 +119,14 @@ mod tests {
         );
 
         // Test with invalid input - missing field
-        let missing_field = r#"versioninfo
+        let missing_field = lex(r#"versioninfo
                                     {
                                         "editorversion" "400"
                                         "editorbuild" "6157"
                                         "mapversion" "16"
                                         "prefab" "0"
-                                    }"#; // Missing formatversion
+                                    }"#); // Missing formatversion
+        let missing_field = Stream::from_iter(missing_field);
 
         let missing_result = VersionInfo::parser().parse(missing_field);
         assert!(
@@ -122,14 +135,15 @@ mod tests {
         );
 
         // Test with invalid input - invalid number format
-        let invalid_format = r#"versioninfo
+        let invalid_format = lex(r#"versioninfo
                                     {
                                         "editorversion" "400"
                                         "editorbuild" "invalid"
                                         "mapversion" "16"
                                         "formatversion" "100"
                                         "prefab" "0"
-                                    }"#;
+                                    }"#);
+        let invalid_format = Stream::from_iter(invalid_format);
 
         let invalid_result = VersionInfo::parser().parse(invalid_format);
         assert!(

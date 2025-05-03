@@ -4,6 +4,9 @@ use logos::Logos;
 pub enum Token<'a> {
     Error,
 
+    #[token("\"")]
+    Quote,
+
     #[regex(r#""([^"\\]|\\.)*""#, |lex| lex.slice())]
     QuotedText(&'a str),
 
