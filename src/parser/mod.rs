@@ -114,23 +114,24 @@ where
 }
 
 /// Parses any string, that is surrounded by quotes.
-pub(crate) fn any_quoted_string<'src, I>() -> impl ChumskyParser<'src, I, String, TokenError<'src>>
+pub(crate) fn any_quoted_string<'src, I>(
+) -> impl ChumskyParser<'src, I, &'src str, TokenError<'src>>
 where
     I: TokenSource<'src>,
 {
-    select! { lexer::Token::QuotedText(s) => s.to_string() }
+    select! { lexer::Token::QuotedText(s) => s }
 }
 
 /// Parses an exact string `input`, that is surrounded by quotes.
 /// This is usefull when searching for strings, or whne looking up a key-value pair.
 pub(crate) fn quoted_string<'src, I>(
     input: &'src str,
-) -> impl ChumskyParser<'src, I, String, TokenError<'src>>
+) -> impl ChumskyParser<'src, I, &'src str, TokenError<'src>>
 where
     I: TokenSource<'src>,
 {
     select! {
-        lexer::Token::QuotedText(s) if s == input => s.to_string()
+        lexer::Token::QuotedText(s) if s == input => s
     }
 }
 
@@ -138,7 +139,7 @@ where
 /// The format of this is: "key" "string".
 pub(crate) fn key_value<'src, I>(
     key: &'src str,
-) -> impl ChumskyParser<'src, I, String, TokenError<'src>>
+) -> impl ChumskyParser<'src, I, &'src str, TokenError<'src>>
 where
     I: TokenSource<'src>,
 {

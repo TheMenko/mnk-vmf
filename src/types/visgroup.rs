@@ -15,9 +15,9 @@ use crate::{
 /// Represents a visgroup in the VMF file
 /// Visgroups can be nested and contain properties like name, id, and color
 #[derive(Debug, Clone, PartialEq)]
-pub struct VisGroup {
+pub struct VisGroup<'a> {
     /// The name of the visgroup
-    pub name: String,
+    pub name: &'a str,
 
     /// The unique identifier for the visgroup
     pub visgroupid: u32,
@@ -26,13 +26,18 @@ pub struct VisGroup {
     pub color: Color,
 
     /// Child visgroups contained within this visgroup
-    pub children: Vec<VisGroup>,
+    pub children: Vec<VisGroup<'a>>,
 }
 
-impl VisGroup {
+impl<'a> VisGroup<'a> {
     /// Crates a new [`VisGroup`] instance.
-    pub fn new(name: String, visgroupid: u32, color: Color, children: Vec<VisGroup>) -> VisGroup {
-        Self {
+    pub fn new(
+        name: &'a str,
+        visgroupid: u32,
+        color: Color,
+        children: Vec<VisGroup<'a>>,
+    ) -> VisGroup<'a> {
+        VisGroup {
             name,
             visgroupid,
             color,
@@ -42,16 +47,16 @@ impl VisGroup {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct VisGroups(Vec<VisGroup>);
+pub struct VisGroups<'a>(Vec<VisGroup<'a>>);
 
-impl VisGroups {
-    pub fn new(visgroups: Vec<VisGroup>) -> VisGroups {
+impl<'a> VisGroups<'a> {
+    pub fn new(visgroups: Vec<VisGroup<'a>>) -> VisGroups<'a> {
         Self(visgroups)
     }
 }
 
 /// Public parser trait implementation that allows [`VisGroups`] to use ::parse(input) call.
-impl Parser<'_> for VisGroups {}
+impl<'src> Parser<'src> for VisGroups<'src> {}
 
 /// A [`InternalParser`] implementation for [`VisGroups`].
 /// Every key-value pair needs to be in order, like in the example bellow.
@@ -81,7 +86,7 @@ impl Parser<'_> for VisGroups {}
 ///     }
 /// }
 /// ```
-impl<'src> InternalParser<'src> for VisGroups {
+impl<'src> InternalParser<'src> for VisGroups<'src> {
     fn parser<I>() -> impl ChumskyParser<'src, I, Self, TokenError<'src>>
     where
         I: TokenSource<'src>,
@@ -94,7 +99,7 @@ impl<'src> InternalParser<'src> for VisGroups {
 }
 
 /// Public parser trait implementation that allows [`VisGroup`] to use ::parse(input) call.
-impl Parser<'_> for VisGroup {}
+impl<'src> Parser<'src> for VisGroup<'src> {}
 
 /// A [`InternalParser`] implementation for [`VisGroup`].
 /// Every key-value pair needs to be in order, like in the example bellow.
@@ -110,7 +115,7 @@ impl Parser<'_> for VisGroup {}
 ///     "color" "65 45 0"
 /// }
 /// ```
-impl<'src> InternalParser<'src> for VisGroup {
+impl<'src> InternalParser<'src> for VisGroup<'src> {
     fn parser<I>() -> impl ChumskyParser<'src, I, Self, TokenError<'src>>
     where
         I: TokenSource<'src>,

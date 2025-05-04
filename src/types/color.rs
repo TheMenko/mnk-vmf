@@ -33,7 +33,7 @@ impl<'src> InternalParser<'src> for Color {
     {
         quoted_string("color")
             .ignore_then(any_quoted_string())
-            .try_map(|s: String, span| {
+            .try_map(|s: &str, span| {
                 let mut parts = s.split_whitespace().map(str::parse::<u8>);
                 let (r, g, b) = match (parts.next(), parts.next(), parts.next()) {
                     (Some(Ok(r)), Some(Ok(g)), Some(Ok(b))) => (r, g, b),
