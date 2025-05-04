@@ -1,6 +1,8 @@
 pub(crate) mod error;
 pub(crate) mod lexer;
 
+use std::vec::IntoIter;
+
 use chumsky::{
     combinator::Repeated,
     error::{Rich, RichReason},
@@ -12,6 +14,7 @@ use chumsky::{
     text, IterParser, Parser as ChumskyParser,
 };
 use error::VMFParserError;
+use logos::Logos as _;
 
 #[derive(Debug, PartialEq)]
 pub enum VmfKeyValue {
@@ -82,6 +85,25 @@ pub trait Parser<'src>: InternalParser<'src> {
     }
 }
 
+/// Helper function (nostly for tests and benchmarks) to get Token stream out of input
+pub fn lex(input: &str) -> Stream<IntoIter<lexer::Token<'_>>> {
+    Stream::from_iter(
+        lexer::Token::lexer(input)
+            .map(|tok| tok.unwrap())
+            .collect::<Vec<lexer::Token<'_>>>(),
+    )
+}
+
+/// Produces a vector of tokens (for reuse or benchmarking).
+pub fn tokenize(input: &str) -> Vec<lexer::Token<'_>> {
+    lexer::Token::lexer(input).map(|tok| tok.unwrap()).collect()
+}
+
+/// Wraps tokens into a Stream that Chumsky can parse.
+pub fn stream(tokens: Vec<lexer::Token<'_>>) -> Stream<IntoIter<lexer::Token<'_>>> {
+    Stream::from_iter(tokens)
+}
+
 /// Parse a number from `T`.
 pub(crate) fn number<'a, T, I>() -> impl ChumskyParser<'a, I, T, TokenError<'a>>
 where
@@ -108,18 +130,6 @@ where
             _ => unreachable!(),
         })
 }
-
-/// Parses a white space (or many).
-/*
- *pub(crate) fn whitespace<'src, I>() -> impl ChumskyParser<'src, I, (), TokenError<'src>>
- *where
- *    I: TokenSource<'src>,
- *{
- *    select! {
- *        lexer::Token::Whitespace => ()
- *    }
- *}
- */
 
 /// Parses any string, that is surrounded by quotes.
 pub(crate) fn any_quoted_string<'src, I>() -> impl ChumskyParser<'src, I, String, TokenError<'src>>
@@ -207,14 +217,9 @@ mod tests {
     use chumsky::{input::Stream, ParseResult, Parser};
     use logos::Logos as _;
 
-    fn lex(input: &str) -> Vec<lexer::Token> {
-        lexer::Token::lexer(input).map(|tok| tok.unwrap()).collect()
-    }
-
     #[test]
     fn test_number() {
-        let input = lex("12345");
-        let stream = Stream::from_iter(input);
+        let stream = lex("12345");
 
         let result = number::<u32, _>().parse(stream);
         assert!(!result.has_errors());
@@ -223,8 +228,7 @@ mod tests {
 
     #[test]
     fn test_boolean() {
-        let input = lex(r#""true""#);
-        let stream = Stream::from_iter(input);
+        let stream = lex(r#""true""#);
 
         let result = boolean::<_>().parse(stream);
         assert!(!result.has_errors());
@@ -233,8 +237,7 @@ mod tests {
 
     #[test]
     fn test_key_value_numeric() {
-        let tokens = lex(r#""num" "42""#);
-        let stream = Stream::from_iter(tokens);
+        let stream = lex(r#""num" "42""#);
         let mut result = key_value_numeric::<u32, _>("num").parse(stream);
         assert!(!result.has_errors());
         assert_eq!(result.unwrap(), 42);
@@ -242,16 +245,14 @@ mod tests {
 
     #[test]
     fn test_open_close_block() {
-        let tokens = lex("blk {");
-        let stream = Stream::from_iter(tokens);
+        let stream = lex("blk {");
         let mut r1 = open_block("blk").parse(stream);
         for e in r1.errors() {
             println!("error: {:?}", e.reason());
         }
         assert!(!r1.has_errors());
 
-        let tokens = lex("}");
-        let stream = Stream::from_iter(tokens);
+        let stream = lex("}");
         let mut r2 = close_block().parse(stream);
         for e in r1.errors() {
             println!("error: {:?}", e.reason());

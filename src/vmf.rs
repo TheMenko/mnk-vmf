@@ -1,5 +1,6 @@
 use memmap2::{Mmap, MmapOptions};
 
+use crate::parser::lex;
 use crate::types::entity::*;
 use crate::types::*;
 
