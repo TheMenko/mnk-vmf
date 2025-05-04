@@ -1,5 +1,6 @@
 pub(crate) mod error;
 pub(crate) mod lexer;
+pub mod util;
 
 use std::vec::IntoIter;
 
@@ -83,25 +84,6 @@ pub trait Parser<'src>: InternalParser<'src> {
             Ok(result.unwrap())
         }
     }
-}
-
-/// Helper function (nostly for tests and benchmarks) to get Token stream out of input
-pub fn lex(input: &str) -> Stream<IntoIter<lexer::Token<'_>>> {
-    Stream::from_iter(
-        lexer::Token::lexer(input)
-            .map(|tok| tok.unwrap())
-            .collect::<Vec<lexer::Token<'_>>>(),
-    )
-}
-
-/// Produces a vector of tokens (for reuse or benchmarking).
-pub fn tokenize(input: &str) -> Vec<lexer::Token<'_>> {
-    lexer::Token::lexer(input).map(|tok| tok.unwrap()).collect()
-}
-
-/// Wraps tokens into a Stream that Chumsky can parse.
-pub fn stream(tokens: Vec<lexer::Token<'_>>) -> Stream<IntoIter<lexer::Token<'_>>> {
-    Stream::from_iter(tokens)
 }
 
 /// Parse a number from `T`.
@@ -212,6 +194,8 @@ where
 
 #[cfg(test)]
 mod tests {
+    use crate::util::lex;
+
     use super::*;
     use chumsky::prelude::SimpleSpan;
     use chumsky::{input::Stream, ParseResult, Parser};

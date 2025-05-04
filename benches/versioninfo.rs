@@ -1,5 +1,9 @@
 use criterion::{criterion_group, criterion_main, Criterion};
-use vmf::{stream, tokenize, types::VersionInfo, Parser};
+use vmf::{
+    types::VersionInfo,
+    util::{stream, tokenize},
+    Parser,
+};
 
 fn bench_versioninfo(c: &mut Criterion) {
     let vinfo = tokenize(

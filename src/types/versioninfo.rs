@@ -71,13 +71,11 @@ impl<'src> InternalParser<'src> for VersionInfo {
 
 #[cfg(test)]
 mod tests {
+    use crate::util::lex;
+
     use super::*;
     use chumsky::{input::Stream, Parser};
     use logos::Logos as _;
-
-    fn lex(input: &str) -> Vec<lexer::Token> {
-        lexer::Token::lexer(input).map(|tok| tok.unwrap()).collect()
-    }
 
     #[test]
     fn test_version_info_parser() {
@@ -90,9 +88,8 @@ mod tests {
                         "formatversion" "100"
                         "prefab" "0"
                     }"#);
-        let stream = Stream::from_iter(input);
 
-        let result = VersionInfo::parser().parse(stream);
+        let result = VersionInfo::parser().parse(input);
         assert!(
             !result.has_errors(),
             "Parser failed with error: {:?}",
@@ -110,7 +107,6 @@ mod tests {
         let compact_input = lex(
             r#"versioninfo{"editorversion""500""editorbuild""7000""mapversion""20""formatversion""110""prefab""1"}"#,
         );
-        let compact_input = Stream::from_iter(compact_input);
         let compact_result = VersionInfo::parser().parse(compact_input);
         assert!(
             !compact_result.has_errors(),
@@ -126,7 +122,6 @@ mod tests {
                                         "mapversion" "16"
                                         "prefab" "0"
                                     }"#); // Missing formatversion
-        let missing_field = Stream::from_iter(missing_field);
 
         let missing_result = VersionInfo::parser().parse(missing_field);
         assert!(
@@ -143,7 +138,6 @@ mod tests {
                                         "formatversion" "100"
                                         "prefab" "0"
                                     }"#);
-        let invalid_format = Stream::from_iter(invalid_format);
 
         let invalid_result = VersionInfo::parser().parse(invalid_format);
         assert!(

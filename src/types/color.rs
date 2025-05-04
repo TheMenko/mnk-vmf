@@ -48,16 +48,13 @@ mod tests {
     use chumsky::input::Stream;
     use logos::Logos as _;
 
-    use super::*;
+    use crate::util::lex;
 
-    fn lex(input: &str) -> Vec<lexer::Token> {
-        lexer::Token::lexer(input).map(|tok| tok.unwrap()).collect()
-    }
+    use super::*;
 
     #[test]
     fn test_color_valid() {
         let input = lex(r#""color" "10 100 250""#);
-        let input = Stream::from_iter(input);
         let result = Color::parse(input).expect("Color should parse");
         assert_eq!(
             result,
@@ -77,27 +74,27 @@ mod tests {
             "\"color\"\t\"1\t2\t3\"",
         ];
         for &input in &cases {
-            let stream = Stream::from_iter(lex(input));
+            let stream = lex(input);
             let res = Color::parse(stream).expect("Color should parse");
         }
     }
 
     #[test]
     fn test_color_invalid_key() {
-        assert!(Color::parse(Stream::from_iter(lex(r#""colour" "1 2 3""#))).is_err());
+        assert!(Color::parse(lex(r#""colour" "1 2 3""#)).is_err());
     }
 
     #[test]
     fn test_color_invalid_value_formats() {
-        assert!(Color::parse(Stream::from_iter(lex(r#""color" "10 20""#))).is_err());
-        assert!(Color::parse(Stream::from_iter(lex(r#""color" "10 20 30 40""#))).is_err());
-        assert!(Color::parse(Stream::from_iter(lex(r#""color" "10 twenty 30""#))).is_err());
+        assert!(Color::parse(lex(r#""color" "10 20""#)).is_err());
+        assert!(Color::parse(lex(r#""color" "10 20 30 40""#)).is_err());
+        assert!(Color::parse(lex(r#""color" "10 twenty 30""#)).is_err());
     }
 
     #[test]
     fn test_color_out_of_range() {
-        assert!(Color::parse(Stream::from_iter(lex(r#""color" "256 0 0""#))).is_err());
-        assert!(Color::parse(Stream::from_iter(lex(r#""color" "0 300 0""#))).is_err());
-        assert!(Color::parse(Stream::from_iter(lex(r#""color" "0 0 999""#))).is_err());
+        assert!(Color::parse(lex(r#""color" "256 0 0""#)).is_err());
+        assert!(Color::parse(lex(r#""color" "0 300 0""#)).is_err());
+        assert!(Color::parse(lex(r#""color" "0 0 999""#)).is_err());
     }
 }

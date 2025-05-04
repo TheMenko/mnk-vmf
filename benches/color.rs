@@ -1,5 +1,9 @@
 use criterion::{criterion_group, criterion_main, Criterion};
-use vmf::{stream, tokenize, types::Color, Parser};
+use vmf::{
+    types::Color,
+    util::{stream, tokenize},
+    Parser,
+};
 
 fn bench_color(c: &mut Criterion) {
     let color = tokenize(r#""color" "10 100 250""#);
