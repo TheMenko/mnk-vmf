@@ -93,7 +93,7 @@ where
     T::Err: std::fmt::Debug,
     I: TokenSource<'a>,
 {
-    select! { lexer::Token::Number(s) => s }.try_map(|s: &str, span| {
+    select! { lexer::Token::QuotedText(s) => s }.try_map(|s: &str, span| {
         s.parse::<T>()
             .map_err(|_| Rich::custom(span, "integer out of range"))
     })
@@ -118,9 +118,7 @@ pub(crate) fn any_quoted_string<'src, I>() -> impl ChumskyParser<'src, I, String
 where
     I: TokenSource<'src>,
 {
-    just(lexer::Token::Quote)
-        .ignore_then(select! { lexer::Token::Ident(s) => s.to_string() })
-        .then_ignore(just(lexer::Token::Quote))
+    select! { lexer::Token::QuotedText(s) => s.to_string() }
 }
 
 /// Parses an exact string `input`, that is surrounded by quotes.
@@ -131,13 +129,9 @@ pub(crate) fn quoted_string<'src, I>(
 where
     I: TokenSource<'src>,
 {
-    just(lexer::Token::Quote)
-        .ignore_then(just(lexer::Token::Ident(input)))
-        .then_ignore(just(lexer::Token::Quote))
-        .map(|tok| match tok {
-            lexer::Token::Ident(s) => s.to_string(),
-            _ => unreachable!("only Token::Ident can reach this point"),
-        })
+    select! {
+        lexer::Token::QuotedText(s) if s == input => s.to_string()
+    }
 }
 
 /// Takes a `key` string value, and tries to get a value.
@@ -161,10 +155,7 @@ where
     T::Err: std::fmt::Debug,
     I: TokenSource<'src>,
 {
-    quoted_string(key)
-        .ignore_then(just(lexer::Token::Quote))
-        .ignore_then(number::<T, I>())
-        .then_ignore(just(lexer::Token::Quote))
+    quoted_string(key).ignore_then(number::<T, I>())
 }
 
 /// Starts a parser on VMF blocks. VMF block usually starts with a key, then new line and open
@@ -203,9 +194,12 @@ mod tests {
 
     #[test]
     fn test_number() {
-        let stream = lex("12345");
+        let stream = lex("\"12345\"");
 
         let result = number::<u32, _>().parse(stream);
+        for e in result.errors() {
+            println!("error: {:?}", e.reason());
+        }
         assert!(!result.has_errors());
         assert_eq!(result.unwrap(), 12345);
     }
