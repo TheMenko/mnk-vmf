@@ -11,6 +11,10 @@ harness = false
 name = "color"
 harness = false
 
+[[bench]]
+name = "visgroups"
+harness = false
+
 [dependencies]
 chumsky = "0.10"
 logos = "0.15"

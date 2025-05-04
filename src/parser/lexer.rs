@@ -4,16 +4,8 @@ use logos::Logos;
 pub enum Token<'a> {
     Error,
 
-    #[token("\"")]
-    Quote,
-
-    //#[regex(r#"([^"\\]|\\.)*"#)]
-    //Text,
-    #[regex(r"[+-]?([0-9]*[.])?[0-9]+", priority = 1)]
-    Float(&'a str),
-
-    #[regex(r"[0-9]+", priority = 2)]
-    Number(&'a str),
+    #[regex(r#""([^"\\]|\\.)*""#, |lex| &lex.slice()[1..lex.slice().len()-1])]
+    QuotedText(&'a str),
 
     #[regex(r"[A-Za-z_][A-Za-z0-9_]*")]
     Ident(&'a str),

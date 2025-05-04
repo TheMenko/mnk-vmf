@@ -9,7 +9,7 @@ use super::lexer;
 pub fn lex(input: &str) -> Stream<IntoIter<lexer::Token<'_>>> {
     Stream::from_iter(
         lexer::Token::lexer(input)
-            .map(|tok| tok.unwrap())
+            .map(|tok| tok.expect("expected a valid token."))
             .collect::<Vec<lexer::Token<'_>>>(),
     )
 }

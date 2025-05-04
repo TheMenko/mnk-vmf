@@ -6,9 +6,9 @@ use crate::types::*;
 
 /// `VMFValue` holds types of all items from a VMF.
 #[derive(Debug)]
-pub enum VMFValue {
+pub enum VMFValue<'src> {
     VersionInfo,
-    VisGroup(Box<VisGroup>),
+    VisGroup(Box<VisGroup<'src>>),
     ViewSettings(Box<ViewSettings>),
     World(Box<World>),
     Entity(Box<Entity>),
@@ -19,12 +19,12 @@ pub enum VMFValue {
 /// Memory map backed VMF file.
 /// `mmap` is supposed to be passed `.as_str()` to parsers.
 #[allow(clippy::upper_case_acronyms)]
-pub struct VMF {
+pub struct VMF<'src> {
     mmap: Mmap,
-    data: Vec<VMFValue>,
+    data: Vec<VMFValue<'src>>,
 }
 
-impl VMF {
+impl<'src> VMF<'src> {
     pub fn new(path: &std::path::Path) -> Result<Self, std::io::Error> {
         let file = std::fs::File::open(path)?;
         let mmap = unsafe { MmapOptions::new().map(&file)? };

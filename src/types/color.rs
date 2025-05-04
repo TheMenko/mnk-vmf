@@ -1,7 +1,7 @@
 use crate::{
     parser::{
-        close_block, lexer, number, open_block, quoted_string, InternalParser, TokenError,
-        TokenSource,
+        any_quoted_string, close_block, lexer, number, open_block, quoted_string, InternalParser,
+        TokenError, TokenSource,
     },
     Parser,
 };
@@ -32,14 +32,20 @@ impl<'src> InternalParser<'src> for Color {
         I: TokenSource<'src>,
     {
         quoted_string("color")
-            .ignore_then(just(lexer::Token::Quote))
-            .ignore_then(
-                number::<u8, I>()
-                    .then(number::<u8, I>())
-                    .then(number::<u8, I>()),
-            )
-            .then_ignore(just(lexer::Token::Quote))
-            .map(|((r, g), b)| Color { r, g, b })
+            .ignore_then(any_quoted_string())
+            .try_map(|s: &str, span| {
+                let mut parts = s.split_whitespace().map(str::parse::<u8>);
+                let (r, g, b) = match (parts.next(), parts.next(), parts.next()) {
+                    (Some(Ok(r)), Some(Ok(g)), Some(Ok(b))) => (r, g, b),
+                    _ => return Err(Rich::custom(span, "invalid color components")),
+                };
+
+                if parts.next().is_some() {
+                    return Err(Rich::custom(span, "too many color components"));
+                }
+
+                Ok(Color { r, g, b })
+            })
     }
 }
 
