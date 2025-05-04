@@ -110,14 +110,16 @@ where
 }
 
 /// Parses a white space (or many).
-pub(crate) fn whitespace<'src, I>() -> impl ChumskyParser<'src, I, (), TokenError<'src>>
-where
-    I: TokenSource<'src>,
-{
-    select! {
-        lexer::Token::Whitespace => ()
-    }
-}
+/*
+ *pub(crate) fn whitespace<'src, I>() -> impl ChumskyParser<'src, I, (), TokenError<'src>>
+ *where
+ *    I: TokenSource<'src>,
+ *{
+ *    select! {
+ *        lexer::Token::Whitespace => ()
+ *    }
+ *}
+ */
 
 /// Parses any string, that is surrounded by quotes.
 pub(crate) fn any_quoted_string<'src, I>() -> impl ChumskyParser<'src, I, String, TokenError<'src>>
@@ -167,7 +169,10 @@ where
     T::Err: std::fmt::Debug,
     I: TokenSource<'src>,
 {
-    quoted_string(key).ignore_then(number::<T, I>())
+    quoted_string(key)
+        .ignore_then(just(lexer::Token::Quote))
+        .ignore_then(number::<T, I>())
+        .then_ignore(just(lexer::Token::Quote))
 }
 
 /// Starts a parser on VMF blocks. VMF block usually starts with a key, then new line and open
@@ -183,7 +188,6 @@ where
     I: TokenSource<'src>,
 {
     just(lexer::Token::Ident(block))
-        .ignore_then(whitespace())
         .ignore_then(just(lexer::Token::LBracket))
         .ignored()
 }
@@ -193,9 +197,7 @@ pub(crate) fn close_block<'src, I>() -> impl ChumskyParser<'src, I, (), TokenErr
 where
     I: TokenSource<'src>,
 {
-    whitespace()
-        .ignore_then(just(lexer::Token::RBracket))
-        .ignored()
+    just(lexer::Token::RBracket).ignored()
 }
 
 #[cfg(test)]
@@ -240,14 +242,20 @@ mod tests {
 
     #[test]
     fn test_open_close_block() {
-        let tokens = lex("blk{");
+        let tokens = lex("blk {");
         let stream = Stream::from_iter(tokens);
         let mut r1 = open_block("blk").parse(stream);
+        for e in r1.errors() {
+            println!("error: {:?}", e.reason());
+        }
         assert!(!r1.has_errors());
 
         let tokens = lex("}");
         let stream = Stream::from_iter(tokens);
         let mut r2 = close_block().parse(stream);
+        for e in r1.errors() {
+            println!("error: {:?}", e.reason());
+        }
         assert!(!r2.has_errors());
     }
 }

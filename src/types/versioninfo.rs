@@ -2,7 +2,7 @@ use chumsky::{prelude::*, span::Span, Parser as ChumskyParser};
 
 use crate::parser::{
     close_block, error::VMFParserError, key_value, key_value_numeric, lexer, open_block,
-    whitespace, InternalParser, Parser, TokenError, TokenSource,
+    InternalParser, Parser, TokenError, TokenSource,
 };
 
 /// `VersionInfo` holds the VMF Header information.
