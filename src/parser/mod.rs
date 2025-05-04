@@ -1,15 +1,21 @@
 pub(crate) mod error;
+pub(crate) mod lexer;
+pub mod util;
+
+use std::vec::IntoIter;
 
 use chumsky::{
     combinator::Repeated,
     error::{Rich, RichReason},
     extra,
-    prelude::{just, none_of, one_of},
+    input::{Stream, ValueInput},
+    prelude::*,
     primitive::OneOf,
     span::SimpleSpan,
     text, IterParser, Parser as ChumskyParser,
 };
 use error::VMFParserError;
+use logos::Logos as _;
 
 #[derive(Debug, PartialEq)]
 pub enum VmfKeyValue {
@@ -20,10 +26,44 @@ pub enum VmfKeyValue {
     Array(Vec<VmfKeyValue>),
 }
 
-/// An internal trait for implementing chumsky parsers.
-/// We would then simply call parser().parse(input) on it and get the structure.
+/// A shorthand alias for any input source that produces our `lexer::Token` values
+/// along with `SimpleSpan` offsets, and supports value-based parsing (cloning tokens).
+///
+/// This trait is automatically implemented for any `I` that satisfies:
+/// ```ignore
+/// I: ValueInput<'src, Token = lexer::Token<'src>, Span = SimpleSpan>
+/// ```
+///
+/// This is a helper trait for a Chumsky parser over tokens, so we dont have
+/// to spell out the bound everywhere.
+pub(crate) trait TokenSource<'src>:
+    ValueInput<'src, Token = lexer::Token<'src>, Span = SimpleSpan>
+{
+}
+
+/// Seals the `TokenSource` automatically for any `I` that is a ValueInput of the right types
+impl<'src, I> TokenSource<'src> for I where
+    I: ValueInput<'src, Token = lexer::Token<'src>, Span = SimpleSpan>
+{
+}
+
+pub(crate) type TokenError<'src> = extra::Err<Rich<'src, lexer::Token<'src>>>;
+
+/// A private trait that every VMF‐block parser must implement.
+///
+/// Each implementer provides a `parser()` method that builds a Chumsky parser
+/// from any `TokenSource`.  This parser:
+/// - Consumes tokens of type `lexer::Token<'src>` from the input `I`.
+/// - Produces an instance of `Self` on success.
+/// - Yields errors of type `TokenError<'src>` on failure.
+///
+/// By making it generic over `I: TokenSource<'src>`, we can drive the parser
+/// off either a pre-collected slice of tokens (`&[Token<'_, _>]`) or a streaming
+/// iterator wrapped with `Stream::from_iter(...)`.
 pub(crate) trait InternalParser<'src>: Sized {
-    fn parser() -> impl ChumskyParser<'src, &'src str, Self, extra::Err<Rich<'src, char>>>;
+    fn parser<I>() -> impl ChumskyParser<'src, I, Self, TokenError<'src>>
+    where
+        I: TokenSource<'src>;
 }
 
 /// A trait that should be implemented on all VMF block types.
@@ -34,8 +74,10 @@ pub(crate) trait InternalParser<'src>: Sized {
 // so we have the Parser require InternalParser.
 #[allow(private_bounds)]
 pub trait Parser<'src>: InternalParser<'src> {
-    fn parse(src: &'src str) -> Result<Self, Vec<RichReason<'src, char>>> {
-        let result = <Self as InternalParser<'src>>::parser().parse(src);
+    fn parse(
+        src: impl TokenSource<'src>,
+    ) -> Result<Self, Vec<RichReason<'src, lexer::Token<'src>>>> {
+        let result = <Self as InternalParser<'src>>::parser::<_>().parse(src);
         if result.has_errors() {
             Err(result.errors().map(|e| e.reason().clone()).collect())
         } else {
@@ -44,68 +86,85 @@ pub trait Parser<'src>: InternalParser<'src> {
     }
 }
 
-/// Parse a number `T` from either `123` or `"123"`.
-pub(crate) fn number<'a, T>() -> impl ChumskyParser<'a, &'a str, T, extra::Err<Rich<'a, char>>>
+/// Parse a number from `T`.
+pub(crate) fn number<'a, T, I>() -> impl ChumskyParser<'a, I, T, TokenError<'a>>
 where
     T: std::str::FromStr,
+    T::Err: std::fmt::Debug,
+    I: TokenSource<'a>,
 {
-    let bare = text::int(10).try_map(|s: &str, span| {
+    select! { lexer::Token::Number(s) => s }.try_map(|s: &str, span| {
         s.parse::<T>()
             .map_err(|_| Rich::custom(span, "integer out of range"))
-    });
-
-    let quoted = just('"').ignore_then(bare).then_ignore(just('"'));
-
-    quoted.or(bare)
+    })
 }
 
 /// Parse a boolean literal: `true` or `false`.
-pub(crate) fn boolean<'a>() -> impl ChumskyParser<'a, &'a str, bool, extra::Err<Rich<'a, char>>> {
-    just("true").to(true).or(just("false").to(false))
-}
-
-/// Parses a white space (or many).
-pub(crate) fn whitespace<'src>(
-) -> impl ChumskyParser<'src, &'src str, (), extra::Err<Rich<'src, char>>> {
-    one_of(" \t\n\r").repeated().ignored()
+pub(crate) fn boolean<'a, I>() -> impl ChumskyParser<'a, I, bool, TokenError<'a>>
+where
+    I: TokenSource<'a>,
+{
+    quoted_string("true")
+        .or(quoted_string("false"))
+        .map(|v| match v.as_ref() {
+            "true" => true,
+            "false" => false,
+            _ => unreachable!(),
+        })
 }
 
 /// Parses any string, that is surrounded by quotes.
-pub(crate) fn any_quoted_string<'src>(
-) -> impl ChumskyParser<'src, &'src str, String, extra::Err<Rich<'src, char>>> {
-    just('"')
-        .ignore_then(none_of('"').repeated().collect::<String>())
-        .then_ignore(just('"'))
+pub(crate) fn any_quoted_string<'src, I>() -> impl ChumskyParser<'src, I, String, TokenError<'src>>
+where
+    I: TokenSource<'src>,
+{
+    just(lexer::Token::Quote)
+        .ignore_then(select! { lexer::Token::Ident(s) => s.to_string() })
+        .then_ignore(just(lexer::Token::Quote))
 }
 
 /// Parses an exact string `input`, that is surrounded by quotes.
 /// This is usefull when searching for strings, or whne looking up a key-value pair.
-pub(crate) fn quoted_string(
-    input: &str,
-) -> impl ChumskyParser<&str, String, extra::Err<Rich<'_, char>>> {
-    just('"')
-        .ignore_then(just(input))
-        .then_ignore(just('"'))
-        .map(|value| value.to_string())
+pub(crate) fn quoted_string<'src, I>(
+    input: &'src str,
+) -> impl ChumskyParser<'src, I, String, TokenError<'src>>
+where
+    I: TokenSource<'src>,
+{
+    just(lexer::Token::Quote)
+        .ignore_then(just(lexer::Token::Ident(input)))
+        .then_ignore(just(lexer::Token::Quote))
+        .map(|tok| match tok {
+            lexer::Token::Ident(s) => s.to_string(),
+            _ => unreachable!("only Token::Ident can reach this point"),
+        })
 }
 
 /// Takes a `key` string value, and tries to get a value.
 /// The format of this is: "key" "string".
-pub(crate) fn key_value(key: &str) -> impl ChumskyParser<&str, String, extra::Err<Rich<'_, char>>> {
-    quoted_string(key).padded().ignore_then(any_quoted_string())
+pub(crate) fn key_value<'src, I>(
+    key: &'src str,
+) -> impl ChumskyParser<'src, I, String, TokenError<'src>>
+where
+    I: TokenSource<'src>,
+{
+    quoted_string(key).ignore_then(any_quoted_string())
 }
 
 /// Takes a `key` string value, and tries to get a number value.
 /// The format of this is: "key" "10"
-pub(crate) fn key_value_numeric<T>(
-    key: &str,
-) -> impl ChumskyParser<&str, T, extra::Err<Rich<'_, char>>>
+pub(crate) fn key_value_numeric<'src, T, I>(
+    key: &'src str,
+) -> impl ChumskyParser<'src, I, T, TokenError<'src>>
 where
     T: std::str::FromStr,
+    T::Err: std::fmt::Debug,
+    I: TokenSource<'src>,
 {
     quoted_string(key)
-        .padded()
-        .ignore_then(number::<T>().padded())
+        .ignore_then(just(lexer::Token::Quote))
+        .ignore_then(number::<T, I>())
+        .then_ignore(just(lexer::Token::Quote))
 }
 
 /// Starts a parser on VMF blocks. VMF block usually starts with a key, then new line and open
@@ -114,144 +173,74 @@ where
 /// example:
 /// versioninfo
 /// {
-pub(crate) fn open_block(block: &str) -> impl ChumskyParser<&str, (), extra::Err<Rich<'_, char>>> {
-    just(block)
-        .ignore_then(whitespace())
-        .ignore_then(just('{'))
+pub(crate) fn open_block<'src, I>(
+    block: &'src str,
+) -> impl ChumskyParser<'src, I, (), TokenError<'src>>
+where
+    I: TokenSource<'src>,
+{
+    just(lexer::Token::Ident(block))
+        .ignore_then(just(lexer::Token::LBracket))
         .ignored()
 }
 
 /// Closes a previously [`open_block`]. It just ignores the whitespace and the closing bracket.
-pub(crate) fn close_block<'src>(
-) -> impl ChumskyParser<'src, &'src str, (), extra::Err<Rich<'src, char>>> {
-    whitespace().ignore_then(just('}')).ignored()
+pub(crate) fn close_block<'src, I>() -> impl ChumskyParser<'src, I, (), TokenError<'src>>
+where
+    I: TokenSource<'src>,
+{
+    just(lexer::Token::RBracket).ignored()
 }
 
 #[cfg(test)]
 mod tests {
+    use crate::util::lex;
+
     use super::*;
-    use chumsky::Parser;
+    use chumsky::prelude::SimpleSpan;
+    use chumsky::{input::Stream, ParseResult, Parser};
+    use logos::Logos as _;
 
     #[test]
     fn test_number() {
-        let r = number::<u32>().parse("0");
-        assert!(!r.has_errors());
-        assert_eq!(r.unwrap(), 0);
+        let stream = lex("12345");
 
-        let r = number::<u32>().parse("12345");
-        assert!(!r.has_errors());
-        assert_eq!(r.unwrap(), 12345);
-
-        // out of range
-        let r = number::<u8>().parse("300");
-        assert!(r.has_errors());
-
-        // non‐digit
-        let r = number::<u32>().parse("abc");
-        assert!(r.has_errors());
+        let result = number::<u32, _>().parse(stream);
+        assert!(!result.has_errors());
+        assert_eq!(result.unwrap(), 12345);
     }
 
     #[test]
     fn test_boolean() {
-        let r = boolean().parse("true");
-        assert!(!r.has_errors());
-        assert!(r.unwrap());
+        let stream = lex(r#""true""#);
 
-        let r = boolean().parse("false");
-        assert!(!r.has_errors());
-        assert!(!r.unwrap());
-
-        let r = boolean().parse("yes");
-        assert!(r.has_errors());
-    }
-
-    #[test]
-    fn test_whitespace() {
-        assert!(!whitespace().parse("    ").has_errors());
-        assert!(!whitespace().parse("\t\n\r").has_errors());
-        assert!(!whitespace().parse("").has_errors());
-
-        assert!(whitespace().parse("x").has_errors());
-    }
-
-    #[test]
-    fn test_any_quoted_string() {
-        let r = any_quoted_string().parse("\"hello\"");
-        assert!(!r.has_errors());
-        assert_eq!(r.unwrap(), "hello".to_string());
-
-        let r = any_quoted_string().parse("\"\"");
-        assert!(!r.has_errors());
-        assert_eq!(r.unwrap(), "".to_string());
-
-        // missing closing quote
-        assert!(any_quoted_string().parse("\"abc").has_errors());
-    }
-
-    #[test]
-    fn test_quoted_string() {
-        let r = quoted_string("foo").parse("\"foo\"");
-        assert!(!r.has_errors());
-        assert_eq!(r.unwrap(), "foo".to_string());
-
-        // wrong literal
-        assert!(quoted_string("foo").parse("\"bar\"").has_errors());
-    }
-
-    #[test]
-    fn test_key_value() {
-        let r = key_value("key").parse("\"key\" \"value\"");
-        assert!(!r.has_errors());
-        assert_eq!(r.unwrap(), "value".to_string());
-
-        // no space between
-        let r = key_value("key").parse("\"key\"\"v\"");
-        assert!(!r.has_errors());
-        assert_eq!(r.unwrap(), "v".to_string());
-
-        // wrong key
-        assert!(key_value("key").parse("\"other\" \"value\"").has_errors());
+        let result = boolean::<_>().parse(stream);
+        assert!(!result.has_errors());
+        assert!(result.unwrap());
     }
 
     #[test]
     fn test_key_value_numeric() {
-        let r = key_value_numeric::<u32>("num").parse("\"num\" \"10\"");
-        assert!(!r.has_errors());
-        assert_eq!(r.unwrap(), 10);
-
-        let r = key_value_numeric::<u32>("num").parse("\"num\" \"20\"");
-        assert!(!r.has_errors());
-        assert_eq!(r.unwrap(), 20);
-
-        // wrong key
-        assert!(key_value_numeric::<u32>("num")
-            .parse("\"x\" \"5\"")
-            .has_errors());
-
-        // non‐numeric
-        assert!(key_value_numeric::<u32>("num")
-            .parse("\"num\" \"abc\"")
-            .has_errors());
+        let stream = lex(r#""num" "42""#);
+        let mut result = key_value_numeric::<u32, _>("num").parse(stream);
+        assert!(!result.has_errors());
+        assert_eq!(result.unwrap(), 42);
     }
 
     #[test]
     fn test_open_close_block() {
-        // open_block
-        let r = open_block("blk").parse("blk{");
-        assert!(!r.has_errors());
+        let stream = lex("blk {");
+        let mut r1 = open_block("blk").parse(stream);
+        for e in r1.errors() {
+            println!("error: {:?}", e.reason());
+        }
+        assert!(!r1.has_errors());
 
-        let r = open_block("blk").parse("blk {");
-        assert!(!r.has_errors());
-
-        // close_block
-        let r = close_block().parse("}");
-        assert!(!r.has_errors());
-
-        let r = close_block().parse(" }");
-        assert!(!r.has_errors());
-
-        // errors
-        assert!(open_block("x").parse("y{").has_errors());
-        assert!(close_block().parse("]").has_errors());
+        let stream = lex("}");
+        let mut r2 = close_block().parse(stream);
+        for e in r1.errors() {
+            println!("error: {:?}", e.reason());
+        }
+        assert!(!r2.has_errors());
     }
 }

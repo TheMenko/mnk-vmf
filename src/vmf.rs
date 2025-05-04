@@ -1,5 +1,6 @@
 use memmap2::{Mmap, MmapOptions};
 
+use crate::parser::util::lex;
 use crate::types::entity::*;
 use crate::types::*;
 
@@ -43,11 +44,19 @@ impl VMF {
 
 #[cfg(test)]
 mod tests {
-    use chumsky::Parser as _;
+    use chumsky::{input::Stream, Parser as _};
+    use logos::Logos as _;
 
-    use crate::{parser::InternalParser, Parser};
+    use crate::{
+        parser::{lexer, InternalParser},
+        Parser,
+    };
 
     use super::*;
+
+    fn lex(input: &str) -> Vec<lexer::Token> {
+        lexer::Token::lexer(input).map(|tok| tok.unwrap()).collect()
+    }
 
     #[test]
     fn load() {
@@ -56,7 +65,7 @@ mod tests {
 
     #[test]
     fn parse_versioninfo_and_color_together() {
-        let src = r#"versioninfo
+        let src = lex(r#"versioninfo
 {
     "editorversion"  "400"
     "editorbuild"    "6157"
@@ -65,11 +74,13 @@ mod tests {
     "prefab"         "0"
 }
     "color"          "255 0 0"
-"#;
+"#);
+
+        let src_stream = Stream::from_iter(src);
 
         let parser = VersionInfo::parser().then(Color::parser());
 
-        let result = parser.parse(src).unwrap();
+        let result = parser.parse(src_stream).unwrap();
 
         println!("{:?} {:?}", result.0, result.1);
     }

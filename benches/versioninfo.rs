@@ -1,20 +1,30 @@
 use criterion::{criterion_group, criterion_main, Criterion};
-use vmf::{types::VersionInfo, Parser};
+use vmf::{
+    types::VersionInfo,
+    util::{stream, tokenize},
+    Parser,
+};
 
 fn bench_versioninfo(c: &mut Criterion) {
-    let vinfo = r#"versioninfo
+    let vinfo = tokenize(
+        r#"versioninfo
                 {
                   "editorversion" "400"
                   "editorbuild" "6157"
                   "mapversion" "16"
                   "formatversion" "100"
                   "prefab" "0"
-                }"#;
+                }"#,
+    );
 
     c.bench_function("parse versioninfo", |b| {
-        b.iter(|| {
-            VersionInfo::parse(vinfo).unwrap();
-        })
+        b.iter_batched(
+            || stream(vinfo.clone()),
+            |input| {
+                VersionInfo::parse(input).unwrap();
+            },
+            criterion::BatchSize::SmallInput,
+        )
     });
 }
 
