@@ -159,6 +159,17 @@ where
     quoted_string(key).ignore_then(number::<T, I>())
 }
 
+/// Takes a `key` string value, and tries to get a boolean value.
+/// The format of this is: "key" "false"
+pub(crate) fn key_value_boolean<'src, I>(
+    key: &'src str,
+) -> impl ChumskyParser<'src, I, (&'src str, bool), TokenError<'src>>
+where
+    I: TokenSource<'src>,
+{
+    quoted_string(key).then(boolean())
+}
+
 /// Starts a parser on VMF blocks. VMF block usually starts with a key, then new line and open
 /// bracket.
 ///
