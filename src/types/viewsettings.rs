@@ -8,6 +8,43 @@ use crate::{
     Parser,
 };
 
+/// Macro to define individual property parsers and combine them with .or().
+///
+/// Usage:
+/// ```ignore
+/// impl_block_properties_parser! {
+///     // Output variable name for the combined parser: Its type will be Box<dyn Parser<..., Output = $PropEnumType, ...>>
+///     any_property_variable_name: YourPropertyEnumType = {
+///         // var_name = parser_call_expr => enum_variant_constructor_or_mapper_fn
+///         p_some_bool = some_parser_that_outputs_bool("some_key") => YourPropertyEnumType::SomeBool,
+///         p_some_num  = some_parser_that_outputs_u32("num_key")  => YourPropertyEnumType::SomeNum,
+///         // ...
+///     }
+/// }
+/// ```
+macro_rules! impl_block_properties_parser {
+    (@build_or_chain $first_parser_var:ident) => {
+        $first_parser_var
+    };
+    (@build_or_chain $first_parser_var:ident, $($rest_parser_vars:ident),+) => {
+        $first_parser_var.or(impl_block_properties_parser!(@build_or_chain $($rest_parser_vars),+))
+    };
+
+    (
+        $any_property_let_name:ident: $PropEnumType:ty = {
+            $(
+                $var_name:ident = $parser_call_expr:expr => $value_mapper_fn:expr
+            ),+ $(,)? // Allow trailing comma
+        }
+    ) => {
+        $(
+            let $var_name = $parser_call_expr.map($value_mapper_fn);
+        )+
+        let $any_property_let_name =
+            impl_block_properties_parser!(@build_or_chain $($var_name),+).boxed();
+    };
+}
+
 #[derive(Debug, Default, Eq, PartialEq)]
 pub struct ViewSettings {
     snap_to_grid: bool,
@@ -69,67 +106,28 @@ impl<'src> InternalParser<'src> for ViewSettings {
     where
         I: TokenSource<'src>,
     {
-        let p_snap_to_grid = key_value_boolean("bSnapToGrid").map(ViewSettingsProperty::SnapToGrid);
-
-        let p_show_grid = key_value_boolean("bShowGrid").map(ViewSettingsProperty::ShowGrid);
-
-        let p_show_logical_grid =
-            key_value_boolean("bShowLogicalGrid").map(ViewSettingsProperty::ShowLogicalGrid);
-
-        let p_grid_spacing = key_value_numeric("nGridSpacing") // u32 for nGridSpacing
-            .map(ViewSettingsProperty::GridSpacing);
-
-        let p_show_3d_grid = key_value_boolean("bShow3DGrid").map(ViewSettingsProperty::Show3DGrid);
-
-        // Parsers for the rest of the boolean fields
-        // Assuming VMF key names follow "b<PascalCaseStructFieldName>" convention
-        let p_hide_objects =
-            key_value_boolean("bHideObjects").map(ViewSettingsProperty::HideObjects);
-
-        let p_hide_walls = key_value_boolean("bHideWalls").map(ViewSettingsProperty::HideWalls);
-
-        let p_hide_stripes =
-            key_value_boolean("bHideStripes").map(ViewSettingsProperty::HideStripes);
-
-        let p_hide_neighbors =
-            key_value_boolean("bHideNeighbors").map(ViewSettingsProperty::HideNeighbors);
-
-        let p_hide_detail = key_value_boolean("bHideDetail").map(ViewSettingsProperty::HideDetail);
-
-        let p_show_brushes =
-            key_value_boolean("bShowBrushes").map(ViewSettingsProperty::ShowBrushes);
-
-        let p_show_entities =
-            key_value_boolean("bShowEntities").map(ViewSettingsProperty::ShowEntities);
-
-        let p_show_light_radius =
-            key_value_boolean("bShowLightRadius").map(ViewSettingsProperty::ShowLightRadius);
-
-        let p_show_lighting_preview = key_value_boolean("bShowLightingPreview")
-            .map(ViewSettingsProperty::ShowLightingPreview);
-
-        let p_show_wireframe =
-            key_value_boolean("bShowWireframe").map(ViewSettingsProperty::ShowWireframe);
-
-        let any_property = p_snap_to_grid
-            .or(p_show_grid)
-            .or(p_show_logical_grid)
-            .or(p_grid_spacing)
-            .or(p_show_3d_grid)
-            .or(p_hide_objects)
-            .or(p_hide_walls)
-            .or(p_hide_stripes)
-            .or(p_hide_neighbors)
-            .or(p_hide_detail)
-            .or(p_show_brushes)
-            .or(p_show_entities)
-            .or(p_show_light_radius)
-            .or(p_show_lighting_preview)
-            .or(p_show_wireframe);
-
+        impl_block_properties_parser! {
+            property_list: ViewSettingsProperty = {
+                p_snap_to_grid        = key_value_boolean("bSnapToGrid")          => ViewSettingsProperty::SnapToGrid,
+                p_show_grid           = key_value_boolean("bShowGrid")            => ViewSettingsProperty::ShowGrid,
+                p_show_logical_grid   = key_value_boolean("bShowLogicalGrid")     => ViewSettingsProperty::ShowLogicalGrid,
+                p_grid_spacing        = key_value_numeric("nGridSpacing")         => ViewSettingsProperty::GridSpacing,
+                p_show_3d_grid        = key_value_boolean("bShow3DGrid")          => ViewSettingsProperty::Show3DGrid,
+                p_hide_objects        = key_value_boolean("bHideObjects")         => ViewSettingsProperty::HideObjects,
+                p_hide_walls          = key_value_boolean("bHideWalls")           => ViewSettingsProperty::HideWalls,
+                p_hide_stripes        = key_value_boolean("bHideStripes")         => ViewSettingsProperty::HideStripes,
+                p_hide_neighbors      = key_value_boolean("bHideNeighbors")       => ViewSettingsProperty::HideNeighbors,
+                p_hide_detail         = key_value_boolean("bHideDetail")          => ViewSettingsProperty::HideDetail,
+                p_show_brushes        = key_value_boolean("bShowBrushes")         => ViewSettingsProperty::ShowBrushes,
+                p_show_entities       = key_value_boolean("bShowEntities")        => ViewSettingsProperty::ShowEntities,
+                p_show_light_radius   = key_value_boolean("bShowLightRadius")     => ViewSettingsProperty::ShowLightRadius,
+                p_show_lighting_preview = key_value_boolean("bShowLightingPreview") => ViewSettingsProperty::ShowLightingPreview,
+                p_show_wireframe      = key_value_boolean("bShowWireframe")       => ViewSettingsProperty::ShowWireframe,
+            }
+        }
         open_block("viewsettings")
             .ignore_then(
-                any_property
+                property_list
                     .repeated()
                     .collect::<Vec<ViewSettingsProperty>>(),
             )
