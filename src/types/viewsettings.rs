@@ -98,7 +98,7 @@ impl<'src> InternalParser<'src> for ViewSettings {
             )
             .then_ignore(close_block())
             .map(|properties: Vec<ViewSettingsProperty>| {
-                let mut settings = ViewSettings::default(); // Start with default values
+                let mut settings = ViewSettings::default();
                 for prop in properties {
                     match prop {
                         ViewSettingsProperty::SnapToGrid(val) => settings.snap_to_grid = val,
