@@ -1,6 +1,7 @@
 use chumsky::{IterParser, Parser as ChumskyParser};
 
 use crate::{
+    impl_block_properties_parser,
     parser::{
         close_block, key_value, key_value_boolean, key_value_numeric, open_block, InternalParser,
         TokenError, TokenSource,
@@ -8,43 +9,7 @@ use crate::{
     Parser,
 };
 
-/// Macro to define individual property parsers and combine them with .or().
-///
-/// Usage:
-/// ```ignore
-/// impl_block_properties_parser! {
-///     // Output variable name for the combined parser: Its type will be Box<dyn Parser<..., Output = $PropEnumType, ...>>
-///     any_property_variable_name: YourPropertyEnumType = {
-///         // var_name = parser_call_expr => enum_variant_constructor_or_mapper_fn
-///         p_some_bool = some_parser_that_outputs_bool("some_key") => YourPropertyEnumType::SomeBool,
-///         p_some_num  = some_parser_that_outputs_u32("num_key")  => YourPropertyEnumType::SomeNum,
-///         // ...
-///     }
-/// }
-/// ```
-macro_rules! impl_block_properties_parser {
-    (@build_or_chain $first_parser_var:ident) => {
-        $first_parser_var
-    };
-    (@build_or_chain $first_parser_var:ident, $($rest_parser_vars:ident),+) => {
-        $first_parser_var.or(impl_block_properties_parser!(@build_or_chain $($rest_parser_vars),+))
-    };
-
-    (
-        $any_property_let_name:ident: $PropEnumType:ty = {
-            $(
-                $var_name:ident = $parser_call_expr:expr => $value_mapper_fn:expr
-            ),+ $(,)? // Allow trailing comma
-        }
-    ) => {
-        $(
-            let $var_name = $parser_call_expr.map($value_mapper_fn);
-        )+
-        let $any_property_let_name =
-            impl_block_properties_parser!(@build_or_chain $($var_name),+).boxed();
-    };
-}
-
+/// ViewSettings holds all the parameters for an editor
 #[derive(Debug, Default, Eq, PartialEq)]
 pub struct ViewSettings {
     snap_to_grid: bool,
@@ -64,7 +29,7 @@ pub struct ViewSettings {
     show_wireframe: bool,
 }
 
-/// Internal ViewSettings Properties to be used in a parser impl
+/// Internal [`ViewSettings`] Properties to be used in a parser impl
 #[derive(Debug, Clone)]
 enum ViewSettingsProperty {
     SnapToGrid(bool),
