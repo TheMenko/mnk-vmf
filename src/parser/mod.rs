@@ -104,13 +104,11 @@ pub(crate) fn boolean<'a, I>() -> impl ChumskyParser<'a, I, bool, TokenError<'a>
 where
     I: TokenSource<'a>,
 {
-    quoted_string("true")
-        .or(quoted_string("false"))
-        .map(|v| match v.as_ref() {
-            "true" => true,
-            "false" => false,
-            _ => unreachable!(),
-        })
+    quoted_string("1").or(quoted_string("0")).map(|v| match v {
+        "1" => true,
+        "0" => false,
+        _ => unreachable!(),
+    })
 }
 
 /// Parses any string, that is surrounded by quotes.
@@ -157,6 +155,17 @@ where
     I: TokenSource<'src>,
 {
     quoted_string(key).ignore_then(number::<T, I>())
+}
+
+/// Takes a `key` string value, and tries to get a boolean value.
+/// The format of this is: "key" "false"
+pub(crate) fn key_value_boolean<'src, I>(
+    key: &'src str,
+) -> impl ChumskyParser<'src, I, bool, TokenError<'src>>
+where
+    I: TokenSource<'src>,
+{
+    quoted_string(key).ignore_then(boolean())
 }
 
 /// Starts a parser on VMF blocks. VMF block usually starts with a key, then new line and open
@@ -207,7 +216,7 @@ mod tests {
 
     #[test]
     fn test_boolean() {
-        let stream = lex(r#""true""#);
+        let stream = lex(r#""1""#);
 
         let result = boolean::<_>().parse(stream);
         assert!(!result.has_errors());
