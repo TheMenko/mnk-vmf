@@ -11,6 +11,7 @@ mod visgroup;
 mod displacement;
 mod side;
 mod solid;
+mod textureaxis;
 mod world;
 
 // Entity types
