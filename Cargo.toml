@@ -28,3 +28,8 @@ harness = false
 name = "viewsettings"
 harness = false
 
+[[bench]]
+name = "side"
+harness = false
+
+
