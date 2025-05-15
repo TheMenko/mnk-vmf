@@ -2,14 +2,10 @@ use chumsky::IterParser as _;
 use chumsky::Parser as ChumskyParser;
 
 use crate::impl_block_properties_parser;
-use crate::parser::close_block;
-use crate::parser::key_value;
-use crate::parser::key_value_numeric;
-use crate::parser::number;
-use crate::parser::open_block;
-use crate::parser::InternalParser;
-use crate::parser::TokenError;
-use crate::parser::TokenSource;
+use crate::parser::{
+    close_block, key_value, key_value_numeric, number, open_block, InternalParser, TokenError,
+    TokenSource,
+};
 use crate::types::point::key_value_plane;
 use crate::types::textureaxis::key_value_texture_axis;
 use crate::Parser;
