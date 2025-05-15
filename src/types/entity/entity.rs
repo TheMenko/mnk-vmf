@@ -1,12 +1,12 @@
+use super::super::point::Point3D;
 use super::super::Color;
 use super::super::EditorData;
-use super::super::Point3D;
 use super::super::Solid;
 use super::EntityOutput;
 
 /// Represents a generic entity in a VMF file
 #[derive(Debug)]
-pub struct Entity {
+pub struct Entity<'a> {
     pub id: u32,
     pub classname: String,
     pub origin: Option<Point3D>,
@@ -33,7 +33,7 @@ pub struct Entity {
     pub properties: std::collections::HashMap<String, String>,
 
     // Solids (for brush entities)
-    pub solids: Vec<Solid>,
+    pub solids: Vec<Solid<'a>>,
 
     // Editor data
     pub editor: EditorData,

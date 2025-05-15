@@ -11,6 +11,7 @@ mod visgroup;
 mod displacement;
 mod side;
 mod solid;
+mod textureaxis;
 mod world;
 
 // Entity types
@@ -24,7 +25,6 @@ pub use color::*;
 pub use cordon::*;
 pub use displacement::*;
 pub use editor::*;
-pub use point::*;
 pub use side::*;
 pub use solid::*;
 pub use versioninfo::*;

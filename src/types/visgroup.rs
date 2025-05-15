@@ -17,16 +17,16 @@ use crate::{
 #[derive(Debug, Clone, PartialEq)]
 pub struct VisGroup<'a> {
     /// The name of the visgroup
-    pub name: &'a str,
+    name: &'a str,
 
     /// The unique identifier for the visgroup
-    pub visgroupid: u32,
+    visgroupid: u32,
 
     /// The color of the visgroup in RGB format
-    pub color: Color,
+    color: Color,
 
     /// Child visgroups contained within this visgroup
-    pub children: Vec<VisGroup<'a>>,
+    children: Vec<VisGroup<'a>>,
 }
 
 impl<'a> VisGroup<'a> {
