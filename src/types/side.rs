@@ -113,13 +113,8 @@ mod tests {
     use chumsky::{error::RichReason, input::Stream, Parser as ChumskyParser};
     use logos::Logos as _;
 
-    // Helper to create a default Point3D tuple for plane if needed for expected values
     fn default_plane() -> (Point3D, Point3D, Point3D) {
-        (
-            Point3D::default(), // Assuming Point3D also derives Default and PartialEq
-            Point3D::default(),
-            Point3D::default(),
-        )
+        (Point3D::default(), Point3D::default(), Point3D::default())
     }
 
     #[test]
@@ -187,8 +182,6 @@ mod tests {
 
     #[test]
     fn test_parse_side_properties_out_of_order() {
-        // This test assumes your parser (due to impl_block_properties_parser and .repeated())
-        // supports out-of-order properties. If it doesn't, this test should fail or be removed.
         let input = r#"
         side
         {
@@ -252,9 +245,6 @@ mod tests {
 
     #[test]
     fn test_parse_side_missing_optional_properties() {
-        // Assuming 'rotation', 'lightmapscale', 'smoothing_groups' might be optional
-        // and default if not present. If they are mandatory, this test should fail.
-        // The default() for TextureAxis and plane might be all zeros.
         let input = r#"
         side
         {
@@ -322,7 +312,6 @@ mod tests {
 
     #[test]
     fn test_parse_side_empty_block() {
-        // If all properties are optional and Side::default() is used.
         let input = r#"
         side
         {
@@ -335,12 +324,10 @@ mod tests {
         let side = result.unwrap();
         let expected_side = Side::default(); // Assumes all fields get their default values
 
-        // Need to manually implement PartialEq for Side or compare field by field
-        // if Side doesn't derive PartialEq.
         assert_eq!(side.id, expected_side.id);
-        assert_eq!(side.plane, expected_side.plane); // Make sure Point3D also has default+PartialEq
+        assert_eq!(side.plane, expected_side.plane);
         assert_eq!(side.material, expected_side.material);
-        assert_eq!(side.uaxis, expected_side.uaxis); // Make sure TextureAxis has default+PartialEq
+        assert_eq!(side.uaxis, expected_side.uaxis);
         assert_eq!(side.vaxis, expected_side.vaxis);
         assert_eq!(side.rotation, expected_side.rotation);
         assert_eq!(side.lightmapscale, expected_side.lightmapscale);
@@ -368,9 +355,6 @@ mod tests {
             result.is_err(),
             "Parsing should have failed for malformed id"
         );
-        // Optionally, check the specific error if your key_value_numeric provides good errors
-        // let errors = result.err().unwrap();
-        // assert!(errors.iter().any(|e| e.label() == Some("id") && e.reason().to_string().contains("expected numeric")));
     }
 
     #[test]
@@ -443,12 +427,6 @@ mod tests {
 
     #[test]
     fn test_parse_side_unknown_property() {
-        // This test behavior depends on how `impl_block_properties_parser!` handles unknown keys.
-        // If it errors, this test is good. If it ignores, then the result should be Ok
-        // and the unknown property should not affect the known ones.
-        // Chumsky's `choice` (which `.or` chain expands to) will backtrack and if no known
-        // property matches and the input isn't exhausted, it would typically error if `.repeated()`
-        // expects to consume a property.
         let input = r#"
         side
         {
@@ -460,9 +438,6 @@ mod tests {
         let stream = lex(input);
         let result = Side::parser().parse(stream).into_result();
 
-        // Assuming unknown properties cause an error because `property_list.repeated()`
-        // would try to parse `property_list` again and fail on "unknown_property"
-        // if it's not at the end of the block or if close_block() is strict.
         assert!(
             result.is_err(),
             "Parsing should fail on unknown property if not explicitly skipped"

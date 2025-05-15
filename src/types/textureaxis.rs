@@ -13,7 +13,7 @@ pub struct TextureAxis {
 
 /// Helper to parse a string segment like "1.0 0.0 0.0 16.0" into (x, y, z, shift)
 fn parse_texture_vector_str(numbers_str: &str) -> Result<(f32, f32, f32, f32), String> {
-    let parts: Vec<&str> = numbers_str.trim().split_whitespace().collect();
+    let parts: Vec<&str> = numbers_str.split_whitespace().collect();
     if parts.len() != 4 {
         return Err(format!(
             "expected 4 numbers for texture vector, found {}",
