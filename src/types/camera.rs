@@ -1,16 +1,16 @@
 use super::entity::PointEntity;
-use super::Point3D;
+use super::point::Point3D;
 
 #[derive(Debug)]
-pub struct Cameras {
+pub struct Cameras<'a> {
     activecamera: String,
-    camera: Vec<Camera>,
+    camera: Vec<Camera<'a>>,
 }
 
 /// Represents a point_viewcontrol (camera) entity
 #[derive(Debug)]
-pub struct Camera {
-    pub base: PointEntity,
+pub struct Camera<'a> {
+    pub base: PointEntity<'a>,
 
     // Camera specific properties
     pub angles: Point3D,

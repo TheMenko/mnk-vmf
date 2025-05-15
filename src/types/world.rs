@@ -2,7 +2,7 @@ use super::EditorData;
 use super::Solid;
 
 #[derive(Debug)]
-pub struct World {
+pub struct World<'a> {
     pub id: u32,
     pub mapversion: u32,
     pub classname: String,
@@ -22,7 +22,7 @@ pub struct World {
     pub hdr_level: Option<u32>,
 
     // Geometry
-    pub solids: Vec<Solid>,
+    pub solids: Vec<Solid<'a>>,
 
     // Entity connections
     pub targetname: Option<String>,

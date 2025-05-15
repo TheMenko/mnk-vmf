@@ -135,7 +135,7 @@ impl<'src> InternalParser<'src> for VisGroup<'src> {
                 .then_ignore(close_block().boxed())
                 .map(|(((name, id), color), children)| VisGroup::new(name, id, color, children))
         })
-    }Viewsettings
+    }
 }
 
 #[cfg(test)]

@@ -10,9 +10,9 @@ pub enum VMFValue<'src> {
     VersionInfo,
     VisGroup(Box<VisGroup<'src>>),
     ViewSettings(Box<ViewSettings>),
-    World(Box<World>),
-    Entity(Box<Entity>),
-    Camera(Box<Camera>),
+    World(Box<World<'src>>),
+    Entity(Box<Entity<'src>>),
+    Camera(Box<Camera<'src>>),
     Cordon(Box<Cordon>),
 }
 
@@ -81,7 +81,5 @@ mod tests {
         let parser = VersionInfo::parser().then(Color::parser());
 
         let result = parser.parse(src_stream).unwrap();
-
-        println!("{:?} {:?}", result.0, result.1);
     }
 }

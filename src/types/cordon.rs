@@ -1,4 +1,4 @@
-use super::Point3D;
+use super::point::Point3D;
 
 /// Represents a cordon entity (tool used to block off parts of the map)
 #[derive(Debug)]
