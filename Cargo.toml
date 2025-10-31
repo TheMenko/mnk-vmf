@@ -47,6 +47,10 @@ harness = false
 name = "solid"
 harness = false
 
+[[bench]]
+name = "world"
+harness = false
+
 [dependencies]
 chumsky = "0.10"
 logos = "0.15"
