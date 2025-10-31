@@ -26,7 +26,7 @@ pub struct DispTri {
 }
 
 /// Represents displacement information for terrain
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct DispInfo {
     pub power: u32,              // Power of 2 determining grid size (2^power + 1)
     pub start_position: Point3D, // Starting position of the displacement
