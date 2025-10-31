@@ -14,17 +14,18 @@ use super::point::Point3D;
 use super::textureaxis::TextureAxis;
 use super::DispInfo;
 
-#[derive(Debug, Default)]
+/// Represents a side (face) of a solid brush
+#[derive(Debug, Default, Clone)]
 pub struct Side<'a> {
-    id: u32,
-    plane: (Point3D, Point3D, Point3D),
-    material: &'a str,
-    uaxis: TextureAxis,
-    vaxis: TextureAxis,
-    rotation: f32,
-    lightmapscale: u32,
-    smoothing_groups: u32,
-    dispinfo: Option<DispInfo>, // Displacement information for terrain
+    pub id: u32,
+    pub plane: (Point3D, Point3D, Point3D),
+    pub material: &'a str,
+    pub uaxis: TextureAxis,
+    pub vaxis: TextureAxis,
+    pub rotation: f32,
+    pub lightmapscale: u32,
+    pub smoothing_groups: u32,
+    pub dispinfo: Option<DispInfo>, // Displacement information for terrain
 }
 
 /// Side properties used for parser impl
@@ -359,7 +360,7 @@ mod tests {
         side
         {
             "id" "1"
-            "plane" "this_is_not_a_plane" 
+            "plane" "this_is_not_a_plane"
             "material" "DEV/DEV_MEASUREGENERIC01B"
             "uaxis" "[1 0 0 0] 0.25"
             "vaxis" "[0 -1 0 0] 0.25"
@@ -384,7 +385,7 @@ mod tests {
             "id" "1"
             "plane" "(-320 -320 0) (-320 320 0) (320 320 0)"
             "material" "DEV/DEV_MEASUREGENERIC01B"
-            "uaxis" "not_a_uaxis" 
+            "uaxis" "not_a_uaxis"
             "vaxis" "[0 -1 0 0] 0.25"
             "rotation" "0"
             "lightmapscale" "16"

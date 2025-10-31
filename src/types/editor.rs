@@ -11,7 +11,7 @@ use crate::{
 };
 
 /// Represents editor-specific data for entities and brushes
-#[derive(Default, Debug)]
+#[derive(Default, Debug, Clone)]
 pub struct EditorData {
     pub color: Color,
     pub visgroupshown: bool,

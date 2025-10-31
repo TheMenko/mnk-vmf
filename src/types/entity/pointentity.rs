@@ -2,8 +2,8 @@ use super::Entity;
 
 /// Represents a point entity (light, prop, etc.)
 #[derive(Debug)]
-pub struct PointEntity<'a> {
-    pub base: Entity<'a>,
+pub struct PointEntity<'src> {
+    pub base: Entity<'src>,
 
     // Point entity specific properties
     pub scale: Option<f32>,

@@ -39,6 +39,14 @@ harness = false
 name = "editor"
 harness = false
 
+[[bench]]
+name = "entity"
+harness = false
+
+[[bench]]
+name = "solid"
+harness = false
+
 [dependencies]
 chumsky = "0.10"
 logos = "0.15"
