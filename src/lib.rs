@@ -1,4 +1,5 @@
 #![allow(dead_code, unused)]
+mod error;
 mod parser;
 pub mod types;
 pub mod vmf;
