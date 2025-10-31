@@ -50,7 +50,7 @@ pub struct World<'src> {
 
 /// Internal [`World`] Properties to be used in a parser impl
 #[derive(Debug, Clone)]
-enum WorldProperty<'a> {
+enum WorldProperty<'src> {
     Id(u32),
     MapVersion(u32),
     Classname(String),
@@ -71,7 +71,7 @@ enum WorldProperty<'a> {
     Hidden(bool),
     Group(u32),
     Editor(EditorData),
-    Solid(Solid<'a>),
+    Solid(Solid<'src>),
     Custom(String, String),
 }
 
@@ -168,5 +168,502 @@ impl<'src> InternalParser<'src> for World<'src> {
                 world
             })
             .boxed()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::util::lex;
+
+    #[test]
+    fn test_world_minimal() {
+        let input = r#"
+        world
+        {
+            "id" "1"
+            "mapversion" "16"
+            "classname" "worldspawn"
+        }
+        "#;
+
+        let stream = lex(input);
+        let result = World::parse(stream);
+        assert!(result.is_ok(), "Parsing failed: {:?}", result.err());
+
+        let world = result.unwrap();
+        assert_eq!(world.id, 1);
+        assert_eq!(world.mapversion, 16);
+        assert_eq!(world.classname, "worldspawn");
+        assert_eq!(world.solids.len(), 0);
+        assert!(world.editor.is_none());
+    }
+
+    #[test]
+    fn test_world_with_properties() {
+        let input = r#"
+        world
+        {
+            "id" "1"
+            "mapversion" "16"
+            "classname" "worldspawn"
+            "detailmaterial" "detail/detailsprites"
+            "detailvbsp" "detail.vbsp"
+            "maxpropscreenwidth" "-1"
+            "skyname" "sky_day01_01"
+        }
+        "#;
+
+        let stream = lex(input);
+        let result = World::parse(stream);
+        assert!(result.is_ok(), "Parsing failed: {:?}", result.err());
+
+        let world = result.unwrap();
+        assert_eq!(
+            world.detailmaterial,
+            Some("detail/detailsprites".to_string())
+        );
+        assert_eq!(world.detailvbsp, Some("detail.vbsp".to_string()));
+        assert_eq!(world.maxpropscreenwidth, Some(-1));
+        assert_eq!(world.skyname, Some("sky_day01_01".to_string()));
+    }
+
+    #[test]
+    fn test_world_with_solids() {
+        let input = r#"
+        world
+        {
+            "id" "1"
+            "mapversion" "16"
+            "classname" "worldspawn"
+            solid
+            {
+                "id" "9"
+                side
+                {
+                    "id" "1"
+                    "plane" "(0 0 0) (1 0 0) (1 1 0)"
+                    "material" "DEV/DEV_MEASUREGENERIC01B"
+                    "uaxis" "[1 0 0 0] 0.25"
+                    "vaxis" "[0 -1 0 0] 0.25"
+                }
+            }
+            solid
+            {
+                "id" "30"
+                side
+                {
+                    "id" "2"
+                    "plane" "(0 0 0) (1 0 0) (1 1 0)"
+                    "material" "DEV/DEV_MEASUREGENERIC01"
+                    "uaxis" "[1 0 0 0] 0.25"
+                    "vaxis" "[0 -1 0 0] 0.25"
+                }
+            }
+        }
+        "#;
+
+        let stream = lex(input);
+        let result = World::parse(stream);
+        assert!(result.is_ok(), "Parsing failed: {:?}", result.err());
+
+        let world = result.unwrap();
+        assert_eq!(world.solids.len(), 2);
+        assert_eq!(world.solids[0].id, 9);
+        assert_eq!(world.solids[1].id, 30);
+    }
+
+    #[test]
+    fn test_world_with_multiple_solids() {
+        let input = r#"
+        world
+        {
+            "id" "1"
+            "mapversion" "16"
+            "classname" "worldspawn"
+            "skyname" "sky_day01_01"
+            solid
+            {
+                "id" "1"
+                side
+                {
+                    "id" "1"
+                    "plane" "(0 0 0) (1 0 0) (1 1 0)"
+                    "material" "CONCRETE"
+                    "uaxis" "[1 0 0 0] 0.25"
+                    "vaxis" "[0 -1 0 0] 0.25"
+                }
+            }
+            solid
+            {
+                "id" "2"
+                side
+                {
+                    "id" "2"
+                    "plane" "(0 0 0) (1 0 0) (1 1 0)"
+                    "material" "METAL"
+                    "uaxis" "[1 0 0 0] 0.25"
+                    "vaxis" "[0 -1 0 0] 0.25"
+                }
+            }
+            solid
+            {
+                "id" "3"
+                side
+                {
+                    "id" "3"
+                    "plane" "(0 0 0) (1 0 0) (1 1 0)"
+                    "material" "WOOD"
+                    "uaxis" "[1 0 0 0] 0.25"
+                    "vaxis" "[0 -1 0 0] 0.25"
+                }
+            }
+        }
+        "#;
+
+        let stream = lex(input);
+        let result = World::parse(stream);
+        assert!(result.is_ok(), "Parsing failed: {:?}", result.err());
+
+        let world = result.unwrap();
+        assert_eq!(world.solids.len(), 3);
+        assert_eq!(world.solids[0].id, 1);
+        assert_eq!(world.solids[1].id, 2);
+        assert_eq!(world.solids[2].id, 3);
+    }
+
+    #[test]
+    fn test_world_with_custom_properties() {
+        let input = r#"
+        world
+        {
+            "id" "1"
+            "mapversion" "16"
+            "classname" "worldspawn"
+            "customkey1" "customvalue1"
+            "customkey2" "customvalue2"
+            "_light" "255 255 255 200"
+        }
+        "#;
+
+        let stream = lex(input);
+        let result = World::parse(stream);
+        assert!(result.is_ok(), "Parsing failed: {:?}", result.err());
+
+        let world = result.unwrap();
+        assert_eq!(
+            world.properties.get("customkey1"),
+            Some(&"customvalue1".to_string())
+        );
+        assert_eq!(
+            world.properties.get("customkey2"),
+            Some(&"customvalue2".to_string())
+        );
+        assert_eq!(
+            world.properties.get("_light"),
+            Some(&"255 255 255 200".to_string())
+        );
+    }
+
+    #[test]
+    fn test_world_properties_out_of_order() {
+        let input = r#"
+        world
+        {
+            "skyname" "sky_day01_01"
+            "classname" "worldspawn"
+            "id" "1"
+            "mapversion" "16"
+            "detailmaterial" "detail/detailsprites"
+        }
+        "#;
+
+        let stream = lex(input);
+        let result = World::parse(stream);
+        assert!(result.is_ok(), "Parsing failed: {:?}", result.err());
+
+        let world = result.unwrap();
+        assert_eq!(world.id, 1);
+        assert_eq!(world.mapversion, 16);
+        assert_eq!(world.classname, "worldspawn");
+        assert_eq!(world.skyname, Some("sky_day01_01".to_string()));
+        assert_eq!(
+            world.detailmaterial,
+            Some("detail/detailsprites".to_string())
+        );
+    }
+
+    #[test]
+    fn test_world_with_editor() {
+        let input = r#"
+        world
+        {
+            "id" "1"
+            "mapversion" "16"
+            "classname" "worldspawn"
+            editor
+            {
+                "color" "255 0 0"
+                "visgroupshown" "1"
+                "visgroupautoshown" "1"
+            }
+        }
+        "#;
+
+        let stream = lex(input);
+        let result = World::parse(stream);
+        assert!(result.is_ok(), "Parsing failed: {:?}", result.err());
+
+        let world = result.unwrap();
+        assert!(world.editor.is_some());
+        let editor = world.editor.unwrap();
+        assert_eq!(editor.color.r, 255);
+        assert_eq!(editor.color.g, 0);
+        assert_eq!(editor.color.b, 0);
+    }
+
+    #[test]
+    fn test_world_with_game_specific_properties() {
+        let input = r#"
+        world
+        {
+            "id" "1"
+            "mapversion" "16"
+            "classname" "worldspawn"
+            "maxoccludeearea" "1000.5"
+            "minoccluderarea" "500.25"
+            "maxoccludeearea_csgo" "2000.75"
+            "minoccluderarea_csgo" "750.5"
+            "difficulty_level" "2"
+            "hdr_level" "1"
+        }
+        "#;
+
+        let stream = lex(input);
+        let result = World::parse(stream);
+        assert!(result.is_ok(), "Parsing failed: {:?}", result.err());
+
+        let world = result.unwrap();
+        assert_eq!(world.maxoccludeearea, Some(1000.5));
+        assert_eq!(world.minoccluderarea, Some(500.25));
+        assert_eq!(world.maxoccludeearea_csgo, Some(2000.75));
+        assert_eq!(world.minoccluderarea_csgo, Some(750.5));
+        assert_eq!(world.difficulty_level, Some(2));
+        assert_eq!(world.hdr_level, Some(1));
+    }
+
+    #[test]
+    fn test_world_with_entity_connections() {
+        let input = r#"
+        world
+        {
+            "id" "1"
+            "mapversion" "16"
+            "classname" "worldspawn"
+            "targetname" "world_spawn"
+            "target" "some_target"
+        }
+        "#;
+
+        let stream = lex(input);
+        let result = World::parse(stream);
+        assert!(result.is_ok(), "Parsing failed: {:?}", result.err());
+
+        let world = result.unwrap();
+        assert_eq!(world.targetname, Some("world_spawn".to_string()));
+        assert_eq!(world.target, Some("some_target".to_string()));
+    }
+
+    #[test]
+    fn test_world_with_editor_properties() {
+        let input = r#"
+        world
+        {
+            "id" "1"
+            "mapversion" "16"
+            "classname" "worldspawn"
+            "hidden" "1"
+            "group" "5"
+        }
+        "#;
+
+        let stream = lex(input);
+        let result = World::parse(stream);
+        assert!(result.is_ok(), "Parsing failed: {:?}", result.err());
+
+        let world = result.unwrap();
+        assert_eq!(world.hidden, Some(true));
+        assert_eq!(world.group, Some(5));
+    }
+
+    #[test]
+    fn test_world_empty_block() {
+        let input = r#"
+        world
+        {
+        }
+        "#;
+
+        let stream = lex(input);
+        let result = World::parse(stream);
+        assert!(result.is_ok(), "Parsing failed: {:?}", result.err());
+
+        let world = result.unwrap();
+        assert_eq!(world.id, 0);
+        assert_eq!(world.mapversion, 0);
+        assert_eq!(world.classname, "");
+        assert_eq!(world.solids.len(), 0);
+    }
+
+    #[test]
+    fn test_world_with_all_sound_properties() {
+        let input = r#"
+        world
+        {
+            "id" "1"
+            "mapversion" "16"
+            "classname" "worldspawn"
+            "sounds" "1"
+            "maxrange" "4096.5"
+        }
+        "#;
+
+        let stream = lex(input);
+        let result = World::parse(stream);
+        assert!(result.is_ok(), "Parsing failed: {:?}", result.err());
+
+        let world = result.unwrap();
+        assert_eq!(world.sounds, Some(1));
+        assert_eq!(world.maxrange, Some(4096.5));
+    }
+
+    #[test]
+    fn test_world_complete_with_everything() {
+        let input = r#"
+        world
+        {
+            "id" "1"
+            "mapversion" "16"
+            "classname" "worldspawn"
+            "detailmaterial" "detail/detailsprites"
+            "detailvbsp" "detail.vbsp"
+            "maxpropscreenwidth" "-1"
+            "skyname" "sky_day01_01"
+            solid
+            {
+                "id" "9"
+                side
+                {
+                    "id" "1"
+                    "plane" "(0 0 0) (1 0 0) (1 1 0)"
+                    "material" "DEV/DEV_MEASUREGENERIC01B"
+                    "uaxis" "[1 0 0 0] 0.25"
+                    "vaxis" "[0 -1 0 0] 0.25"
+                }
+                editor
+                {
+                    "color" "0 111 152"
+                    "visgroupshown" "1"
+                    "visgroupautoshown" "1"
+                }
+            }
+            editor
+            {
+                "color" "255 255 255"
+                "visgroupshown" "1"
+                "visgroupautoshown" "1"
+            }
+        }
+        "#;
+
+        let stream = lex(input);
+        let result = World::parse(stream);
+        assert!(result.is_ok(), "Parsing failed: {:?}", result.err());
+
+        let world = result.unwrap();
+        assert_eq!(world.id, 1);
+        assert_eq!(world.classname, "worldspawn");
+        assert_eq!(world.solids.len(), 1);
+        assert!(world.editor.is_some());
+        assert!(world.solids[0].editor.is_some());
+    }
+
+    #[test]
+    fn test_world_invalid_block_name() {
+        let input = r#"
+        wrongname
+        {
+            "id" "1"
+            "classname" "worldspawn"
+        }
+        "#;
+
+        let stream = lex(input);
+        let result = World::parse(stream);
+        assert!(result.is_err(), "Parser should fail on invalid block name");
+    }
+
+    #[test]
+    fn test_world_missing_closing_brace() {
+        let input = r#"
+        world
+        {
+            "id" "1"
+            "classname" "worldspawn"
+        "#;
+
+        let stream = lex(input);
+        let result = World::parse(stream);
+        assert!(
+            result.is_err(),
+            "Parser should fail on missing closing brace"
+        );
+    }
+
+    #[test]
+    fn test_world_mixed_solids_and_properties() {
+        let input = r#"
+        world
+        {
+            "id" "1"
+            solid
+            {
+                "id" "1"
+                side
+                {
+                    "id" "1"
+                    "plane" "(0 0 0) (1 0 0) (1 1 0)"
+                    "material" "BRICK"
+                    "uaxis" "[1 0 0 0] 0.25"
+                    "vaxis" "[0 -1 0 0] 0.25"
+                }
+            }
+            "classname" "worldspawn"
+            "mapversion" "16"
+            solid
+            {
+                "id" "2"
+                side
+                {
+                    "id" "2"
+                    "plane" "(0 0 0) (1 0 0) (1 1 0)"
+                    "material" "METAL"
+                    "uaxis" "[1 0 0 0] 0.25"
+                    "vaxis" "[0 -1 0 0] 0.25"
+                }
+            }
+            "skyname" "sky_day01_01"
+        }
+        "#;
+
+        let stream = lex(input);
+        let result = World::parse(stream);
+        assert!(result.is_ok(), "Parsing failed: {:?}", result.err());
+
+        let world = result.unwrap();
+        assert_eq!(world.id, 1);
+        assert_eq!(world.classname, "worldspawn");
+        assert_eq!(world.solids.len(), 2);
+        assert_eq!(world.skyname, Some("sky_day01_01".to_string()));
     }
 }
