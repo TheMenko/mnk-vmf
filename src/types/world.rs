@@ -16,11 +16,11 @@ use crate::{
 pub struct World<'src> {
     pub id: u32,
     pub mapversion: u32,
-    pub classname: String,
-    pub detailmaterial: Option<String>,
-    pub detailvbsp: Option<String>,
+    pub classname: &'src str,
+    pub detailmaterial: Option<&'src str>,
+    pub detailvbsp: Option<&'src str>,
     pub maxpropscreenwidth: Option<i32>,
-    pub skyname: Option<String>,
+    pub skyname: Option<&'src str>,
     pub sounds: Option<u32>,
     pub maxrange: Option<f32>,
 
@@ -36,11 +36,11 @@ pub struct World<'src> {
     pub solids: Vec<Solid<'src>>,
 
     // Entity connections
-    pub targetname: Option<String>,
-    pub target: Option<String>,
+    pub targetname: Option<&'src str>,
+    pub target: Option<&'src str>,
 
     // Custom key-value pairs for world-specific properties
-    pub properties: HashMap<String, String>,
+    pub properties: HashMap<&'src str, &'src str>,
 
     // Editor data
     pub hidden: Option<bool>,
@@ -53,11 +53,11 @@ pub struct World<'src> {
 enum WorldProperty<'src> {
     Id(u32),
     MapVersion(u32),
-    Classname(String),
-    DetailMaterial(String),
-    DetailVbsp(String),
+    Classname(&'src str),
+    DetailMaterial(&'src str),
+    DetailVbsp(&'src str),
     MaxPropScreenWidth(i32),
-    Skyname(String),
+    Skyname(&'src str),
     Sounds(u32),
     MaxRange(f32),
     MaxOccludeeArea(f32),
@@ -66,13 +66,13 @@ enum WorldProperty<'src> {
     MinOccluderAreaCsgo(f32),
     DifficultyLevel(u32),
     HdrLevel(u32),
-    Targetname(String),
-    Target(String),
+    Targetname(&'src str),
+    Target(&'src str),
     Hidden(bool),
     Group(u32),
     Editor(EditorData),
     Solid(Solid<'src>),
-    Custom(String, String),
+    Custom(&'src str, &'src str),
 }
 
 /// Public parser trait implementation
@@ -88,11 +88,11 @@ impl<'src> InternalParser<'src> for World<'src> {
             known_properties: WorldProperty<'src> = {
                 p_id                    = key_value_numeric("id")                     => WorldProperty::Id,
                 p_mapversion            = key_value_numeric("mapversion")             => WorldProperty::MapVersion,
-                p_classname             = key_value("classname")                      => |s: &str| WorldProperty::Classname(s.to_string()),
-                p_detailmaterial        = key_value("detailmaterial")                 => |s: &str| WorldProperty::DetailMaterial(s.to_string()),
-                p_detailvbsp            = key_value("detailvbsp")                     => |s: &str| WorldProperty::DetailVbsp(s.to_string()),
+                p_classname             = key_value("classname")                      => |s: &str| WorldProperty::Classname(s),
+                p_detailmaterial        = key_value("detailmaterial")                 => |s: &str| WorldProperty::DetailMaterial(s),
+                p_detailvbsp            = key_value("detailvbsp")                     => |s: &str| WorldProperty::DetailVbsp(s),
                 p_maxpropscreenwidth    = key_value_numeric("maxpropscreenwidth")     => WorldProperty::MaxPropScreenWidth,
-                p_skyname               = key_value("skyname")                        => |s: &str| WorldProperty::Skyname(s.to_string()),
+                p_skyname               = key_value("skyname")                        => |s: &str| WorldProperty::Skyname(s),
                 p_sounds                = key_value_numeric("sounds")                 => WorldProperty::Sounds,
                 p_maxrange              = key_value_numeric("maxrange")               => WorldProperty::MaxRange,
                 p_maxoccludeearea       = key_value_numeric("maxoccludeearea")        => WorldProperty::MaxOccludeeArea,
@@ -101,8 +101,8 @@ impl<'src> InternalParser<'src> for World<'src> {
                 p_minoccluderarea_csgo  = key_value_numeric("minoccluderarea_csgo")   => WorldProperty::MinOccluderAreaCsgo,
                 p_difficulty_level      = key_value_numeric("difficulty_level")       => WorldProperty::DifficultyLevel,
                 p_hdr_level             = key_value_numeric("hdr_level")              => WorldProperty::HdrLevel,
-                p_targetname            = key_value("targetname")                     => |s: &str| WorldProperty::Targetname(s.to_string()),
-                p_target                = key_value("target")                         => |s: &str| WorldProperty::Target(s.to_string()),
+                p_targetname            = key_value("targetname")                     => |s: &str| WorldProperty::Targetname(s),
+                p_target                = key_value("target")                         => |s: &str| WorldProperty::Target(s),
                 p_hidden                = key_value_boolean("hidden")                 => WorldProperty::Hidden,
                 p_group                 = key_value_numeric("group")                  => WorldProperty::Group,
             }
@@ -110,12 +110,9 @@ impl<'src> InternalParser<'src> for World<'src> {
 
         let editor_parser = EditorData::parser().map(WorldProperty::Editor);
         let solid_parser = Solid::parser().map(WorldProperty::Solid);
-        let custom_property =
-            any_quoted_string()
-                .then(any_quoted_string())
-                .map(|(key, value): (&str, &str)| {
-                    WorldProperty::Custom(key.to_string(), value.to_string())
-                });
+        let custom_property = any_quoted_string()
+            .then(any_quoted_string())
+            .map(|(key, value): (&str, &str)| WorldProperty::Custom(key, value));
 
         let any_property = known_properties
             .or(editor_parser)
@@ -219,13 +216,10 @@ mod tests {
         assert!(result.is_ok(), "Parsing failed: {:?}", result.err());
 
         let world = result.unwrap();
-        assert_eq!(
-            world.detailmaterial,
-            Some("detail/detailsprites".to_string())
-        );
-        assert_eq!(world.detailvbsp, Some("detail.vbsp".to_string()));
+        assert_eq!(world.detailmaterial, Some("detail/detailsprites"));
+        assert_eq!(world.detailvbsp, Some("detail.vbsp"));
         assert_eq!(world.maxpropscreenwidth, Some(-1));
-        assert_eq!(world.skyname, Some("sky_day01_01".to_string()));
+        assert_eq!(world.skyname, Some("sky_day01_01"));
     }
 
     #[test]
@@ -351,18 +345,9 @@ mod tests {
         assert!(result.is_ok(), "Parsing failed: {:?}", result.err());
 
         let world = result.unwrap();
-        assert_eq!(
-            world.properties.get("customkey1"),
-            Some(&"customvalue1".to_string())
-        );
-        assert_eq!(
-            world.properties.get("customkey2"),
-            Some(&"customvalue2".to_string())
-        );
-        assert_eq!(
-            world.properties.get("_light"),
-            Some(&"255 255 255 200".to_string())
-        );
+        assert_eq!(world.properties.get("customkey1"), Some(&"customvalue1"));
+        assert_eq!(world.properties.get("customkey2"), Some(&"customvalue2"));
+        assert_eq!(world.properties.get("_light"), Some(&"255 255 255 200"));
     }
 
     #[test]
@@ -386,11 +371,8 @@ mod tests {
         assert_eq!(world.id, 1);
         assert_eq!(world.mapversion, 16);
         assert_eq!(world.classname, "worldspawn");
-        assert_eq!(world.skyname, Some("sky_day01_01".to_string()));
-        assert_eq!(
-            world.detailmaterial,
-            Some("detail/detailsprites".to_string())
-        );
+        assert_eq!(world.skyname, Some("sky_day01_01"));
+        assert_eq!(world.detailmaterial, Some("detail/detailsprites"));
     }
 
     #[test]
@@ -470,8 +452,8 @@ mod tests {
         assert!(result.is_ok(), "Parsing failed: {:?}", result.err());
 
         let world = result.unwrap();
-        assert_eq!(world.targetname, Some("world_spawn".to_string()));
-        assert_eq!(world.target, Some("some_target".to_string()));
+        assert_eq!(world.targetname, Some("world_spawn"));
+        assert_eq!(world.target, Some("some_target"));
     }
 
     #[test]
@@ -664,6 +646,6 @@ mod tests {
         assert_eq!(world.id, 1);
         assert_eq!(world.classname, "worldspawn");
         assert_eq!(world.solids.len(), 2);
-        assert_eq!(world.skyname, Some("sky_day01_01".to_string()));
+        assert_eq!(world.skyname, Some("sky_day01_01"));
     }
 }
