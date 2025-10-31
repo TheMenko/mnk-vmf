@@ -9,7 +9,7 @@ use crate::{
 use chumsky::{error::Rich, extra, prelude::just, Parser as ChumskyParser};
 
 /// Represents an RGB color with three components
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Default, Debug, Clone, Copy, PartialEq)]
 pub struct Color {
     pub r: u8,
     pub g: u8,
