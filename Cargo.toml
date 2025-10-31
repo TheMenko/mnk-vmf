@@ -35,6 +35,10 @@ harness = false
 name = "cordon"
 harness = false
 
+[[bench]]
+name = "editor"
+harness = false
+
 [dependencies]
 chumsky = "0.10"
 logos = "0.15"
