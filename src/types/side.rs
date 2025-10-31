@@ -1,4 +1,4 @@
-use chumsky::IterParser as _;
+use chumsky::IterParser;
 use chumsky::Parser as ChumskyParser;
 
 use crate::impl_block_properties_parser;

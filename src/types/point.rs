@@ -15,8 +15,24 @@ pub struct Point3D {
     pub z: f32,
 }
 
+/// Parses a key-value pair where the value is a Point3D
+pub(crate) fn key_value_point3d<'src, I>(
+    key: &'src str,
+) -> impl ChumskyParser<'src, I, Point3D, TokenError<'src>>
+where
+    I: TokenSource<'src>,
+{
+    use chumsky::error::Rich;
+    quoted_string(key)
+        .ignore_then(any_quoted_string())
+        .try_map(move |value_str, span| {
+            parse_point_from_numbers_str(value_str)
+                .map_err(|err_msg| Rich::custom(span, format!("Invalid point: {}", err_msg)))
+        })
+}
+
 /// Helper to parse a string segment like "1.0 2.5 -3.0" into a [`Point3D`]
-fn parse_point_from_numbers_str(numbers_str: &str) -> Result<Point3D, String> {
+pub(crate) fn parse_point_from_numbers_str(numbers_str: &str) -> Result<Point3D, String> {
     let parts: Vec<&str> = numbers_str.split_whitespace().collect();
     if parts.len() != 3 {
         return Err(format!("expected 3 numbers, found {}", parts.len()));
