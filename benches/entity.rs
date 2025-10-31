@@ -1,6 +1,6 @@
 use criterion::{criterion_group, criterion_main, Criterion};
 use vmf::{
-    types::entity::Entity,
+    types::Entity,
     util::{stream, tokenize},
     Parser,
 };

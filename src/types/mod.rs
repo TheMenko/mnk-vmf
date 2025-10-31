@@ -25,6 +25,7 @@ pub use color::*;
 pub use cordon::*;
 pub use displacement::*;
 pub use editor::*;
+pub use entity::*;
 pub use side::*;
 pub use solid::*;
 pub use versioninfo::*;
