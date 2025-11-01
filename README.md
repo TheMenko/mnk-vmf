@@ -1,17 +1,10 @@
 # VMF Parser
 
-A high-performance, zero-copy parser for Valve Map Format (VMF) files written in Rust.
+A high-performance parser for Valve Map Format (VMF) files written in Rust.
 
 ## Overview
 
-VMF (Valve Map Format) is a text-based file format used by Source Engine level editors like Hammer to store map data. This library provides a fast, memory-efficient parser that leverages memory-mapped I/O and zero-copy parsing techniques to handle large map files with minimal overhead.
-
-## Features
-
-- **Zero-copy parsing** - String data references the memory-mapped file directly, avoiding allocations
-- **Memory-efficient** - Uses `memmap2` for lazy-loaded file access
-- **Type-safe** - Strongly-typed representations of all VMF structures
-- **Flexible parsing** - Parse individual blocks or entire files
+VMF (Valve Map Format) is a text-based file format used by Source Engine level editors like Hammer to store map data. This library provides a fast, memory-efficient parser.
 
 ## Supported VMF Structures
 
@@ -62,29 +55,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 ```
 
-### Parsing Individual Components
-
-You can also parse specific VMF blocks directly:
-
-```rust
-use vmf::Parser;
-use vmf::types::VersionInfo;
-
-let input = r#"
-versioninfo
-{
-    "editorversion" "400"
-    "editorbuild" "6157"
-    "mapversion" "16"
-    "formatversion" "100"
-    "prefab" "0"
-}
-"#;
-
-let version_info = VersionInfo::parse(input)?;
-println!("Editor version: {}", version_info.editor_version);
-```
-
 ### Working with World Geometry
 
 ```rust
@@ -105,15 +75,6 @@ for value in data {
     }
 }
 ```
-
-## Performance
-
-The parser is designed for performance:
-
-- Memory-mapped I/O reduces memory footprint
-- Zero-copy string parsing eliminates allocation overhead
-- Benchmarks included for all major components
-- Suitable for large map files (tested with files over 100MB)
 
 Run benchmarks with:
 
