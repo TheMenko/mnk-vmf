@@ -45,7 +45,7 @@ pub struct World<'src> {
     // Editor data
     pub hidden: Option<bool>,
     pub group: Option<u32>,
-    pub editor: Option<EditorData>,
+    pub editor: Option<EditorData<'src>>,
 }
 
 /// Internal [`World`] Properties to be used in a parser impl
@@ -70,7 +70,7 @@ enum WorldProperty<'src> {
     Target(&'src str),
     Hidden(bool),
     Group(u32),
-    Editor(EditorData),
+    Editor(EditorData<'src>),
     Solid(Solid<'src>),
     Custom(&'src str, &'src str),
 }

@@ -47,7 +47,7 @@ pub struct Entity<'src> {
     pub solids: Vec<Solid<'src>>,
 
     // Editor data
-    pub editor: Option<EditorData>,
+    pub editor: Option<EditorData<'src>>,
 }
 
 /// Internal [`Entity`] Properties to be used in a parser impl
@@ -69,7 +69,7 @@ enum EntityProperty<'src> {
     DisableShadows(bool),
     DisableReceiveShadows(bool),
     StartDisabled(bool),
-    Editor(EditorData),
+    Editor(EditorData<'src>),
     Connections(Vec<EntityOutput<'src>>),
     Solid(Solid<'src>),
     Custom(&'src str, &'src str),

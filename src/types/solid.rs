@@ -12,7 +12,7 @@ use crate::{
 pub struct Solid<'src> {
     pub id: u32,
     pub sides: Vec<Side<'src>>,
-    pub editor: Option<EditorData>,
+    pub editor: Option<EditorData<'src>>,
 }
 
 /// Internal [`Solid`] Properties to be used in a parser impl
@@ -20,7 +20,7 @@ pub struct Solid<'src> {
 enum SolidProperty<'src> {
     Id(u32),
     Side(Side<'src>),
-    Editor(EditorData),
+    Editor(EditorData<'src>),
 }
 
 /// Public parser trait implementation that allows [`Solid`] to use ::parse(input) call.

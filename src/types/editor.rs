@@ -12,26 +12,26 @@ use crate::{
 
 /// Represents editor-specific data for entities and brushes
 #[derive(Default, Debug, Clone)]
-pub struct EditorData {
+pub struct EditorData<'src> {
     pub color: Color,
     pub visgroupshown: bool,
     pub visgroupautoshown: bool,
-    pub comments: Option<String>,
-    pub logicalpos: Option<String>,
+    pub comments: Option<&'src str>,
+    pub logicalpos: Option<&'src str>,
 }
 
 /// Internal [`EditorData`] Properties to be used in a parser impl
 #[derive(Debug, Clone)]
-enum EditorDataProperty {
+enum EditorDataProperty<'src> {
     Color(Color),
     VisGroupShown(bool),
     VisGroupAutoShown(bool),
-    Comments(String),
-    LogicalPos(String),
+    Comments(&'src str),
+    LogicalPos(&'src str),
 }
 
 /// Public parser trait implementation that allows [`EditorData`] to use ::parse(input) call.
-impl Parser<'_> for EditorData {}
+impl<'src> Parser<'src> for EditorData<'src> {}
 
 /// A [`InternalParser`] implementation for [`EditorData`].
 ///
@@ -48,7 +48,7 @@ impl Parser<'_> for EditorData {}
 ///     "comments" "This is a comment"
 /// }
 /// ```
-impl<'src> InternalParser<'src> for EditorData {
+impl<'src> InternalParser<'src> for EditorData<'src> {
     fn parser<I>() -> impl ChumskyParser<'src, I, Self, TokenError<'src>>
     where
         I: TokenSource<'src>,
@@ -58,8 +58,8 @@ impl<'src> InternalParser<'src> for EditorData {
                 p_color                = Color::parser()                       => EditorDataProperty::Color,
                 p_visgroupshown        = key_value_boolean("visgroupshown")    => EditorDataProperty::VisGroupShown,
                 p_visgroupautoshown    = key_value_boolean("visgroupautoshown") => EditorDataProperty::VisGroupAutoShown,
-                p_comments             = key_value("comments")                 => |s: &str| EditorDataProperty::Comments(s.to_string()),
-                p_logicalpos           = key_value("logicalpos")               => |s: &str| EditorDataProperty::LogicalPos(s.to_string()),
+                p_comments             = key_value("comments")                 => |s: &str| EditorDataProperty::Comments(s),
+                p_logicalpos           = key_value("logicalpos")               => |s: &str| EditorDataProperty::LogicalPos(s),
             }
         }
 
@@ -117,8 +117,8 @@ mod tests {
         assert_eq!(editor.color.b, 152);
         assert_eq!(editor.visgroupshown, true);
         assert_eq!(editor.visgroupautoshown, true);
-        assert_eq!(editor.logicalpos, Some("[0 10000]".to_string()));
-        assert_eq!(editor.comments, Some("Test comment".to_string()));
+        assert_eq!(editor.logicalpos, Some("[0 10000]"));
+        assert_eq!(editor.comments, Some("Test comment"));
     }
 
     #[test]
@@ -169,8 +169,8 @@ mod tests {
         assert_eq!(editor.color.b, 50);
         assert_eq!(editor.visgroupshown, false);
         assert_eq!(editor.visgroupautoshown, false);
-        assert_eq!(editor.logicalpos, Some("[0 5000]".to_string()));
-        assert_eq!(editor.comments, Some("Out of order test".to_string()));
+        assert_eq!(editor.logicalpos, Some("[0 5000]"));
+        assert_eq!(editor.comments, Some("Out of order test"));
     }
 
     #[test]
@@ -190,7 +190,7 @@ mod tests {
         assert!(result.is_ok(), "Parsing failed: {:?}", result.err());
 
         let editor = result.unwrap();
-        assert_eq!(editor.logicalpos, Some("[0 0]".to_string()));
+        assert_eq!(editor.logicalpos, Some("[0 0]"));
         assert_eq!(editor.comments, None);
     }
 
@@ -211,7 +211,7 @@ mod tests {
         assert!(result.is_ok(), "Parsing failed: {:?}", result.err());
 
         let editor = result.unwrap();
-        assert_eq!(editor.comments, Some("This brush needs work".to_string()));
+        assert_eq!(editor.comments, Some("This brush needs work"));
         assert_eq!(editor.logicalpos, None);
     }
 
@@ -322,10 +322,7 @@ mod tests {
         let editor = result.unwrap();
         assert_eq!(
             editor.comments,
-            Some(
-                "This is a very long comment that describes the purpose of this brush in detail"
-                    .to_string()
-            )
+            Some("This is a very long comment that describes the purpose of this brush in detail")
         );
     }
 
