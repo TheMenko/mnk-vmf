@@ -9,19 +9,19 @@ use crate::{
 
 /// Represents an output connection between entities
 #[derive(Debug, Default, Clone)]
-pub struct EntityOutput {
-    pub output_name: String,
-    pub target: String,
-    pub input: String,
-    pub parameter: String,
+pub struct EntityOutput<'src> {
+    pub output_name: &'src str,
+    pub target: &'src str,
+    pub input: &'src str,
+    pub parameter: &'src str,
     pub delay: f32,
     pub times_to_fire: i32,
 }
 
-impl EntityOutput {
+impl<'src> EntityOutput<'src> {
     /// Parse an output string in the format: "target,input,parameter,delay,times_to_fire"
     /// Example: "motor*,TurnOn,,0,-1"
-    pub fn parse_output_string(output_name: &str, value: &str) -> Result<Self, String> {
+    pub fn parse_output_string(output_name: &'src str, value: &'src str) -> Result<Self, String> {
         let parts: Vec<&str> = value.split(',').collect();
         if parts.len() != 5 {
             return Err(format!(
@@ -30,9 +30,9 @@ impl EntityOutput {
             ));
         }
 
-        let target = parts[0].trim().to_string();
-        let input = parts[1].trim().to_string();
-        let parameter = parts[2].trim().to_string();
+        let target = parts[0].trim();
+        let input = parts[1].trim();
+        let parameter = parts[2].trim();
         let delay = parts[3]
             .trim()
             .parse::<f32>()
@@ -42,8 +42,8 @@ impl EntityOutput {
             .parse::<i32>()
             .map_err(|e| format!("invalid times_to_fire '{}': {}", parts[4], e))?;
 
-        Ok(EntityOutput {
-            output_name: output_name.to_string(),
+        Ok(EntityOutput::<'src> {
+            output_name,
             target,
             input,
             parameter,
@@ -56,7 +56,7 @@ impl EntityOutput {
 /// Parser for a single output key-value pair
 /// Format: "OutputName" "target,input,parameter,delay,times"
 pub(crate) fn parse_output_entry<'src, I>(
-) -> impl ChumskyParser<'src, I, EntityOutput, TokenError<'src>>
+) -> impl ChumskyParser<'src, I, EntityOutput<'src>, TokenError<'src>>
 where
     I: TokenSource<'src>,
 {

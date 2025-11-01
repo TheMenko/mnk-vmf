@@ -19,15 +19,15 @@ use crate::{
 #[derive(Debug, Default)]
 pub struct Entity<'src> {
     pub id: u32,
-    pub classname: String,
+    pub classname: &'src str,
     pub origin: Option<Point3D>,
     pub angles: Option<Point3D>,
 
     // Common entity properties
-    pub targetname: Option<String>,
-    pub parentname: Option<String>,
-    pub target: Option<String>,
-    pub model: Option<String>,
+    pub targetname: Option<&'src str>,
+    pub parentname: Option<&'src str>,
+    pub target: Option<&'src str>,
+    pub model: Option<&'src str>,
     pub skin: Option<u32>,
     pub spawnflags: Option<u32>,
     pub rendermode: Option<u32>,
@@ -38,10 +38,10 @@ pub struct Entity<'src> {
     pub startdisabled: Option<bool>,
 
     // Entity connections (outputs)
-    pub outputs: Vec<EntityOutput>,
+    pub outputs: Vec<EntityOutput<'src>>,
 
     // Custom key-value pairs for entity-specific properties
-    pub properties: HashMap<String, String>,
+    pub properties: HashMap<&'src str, &'src str>,
 
     // Solids (for brush entities)
     pub solids: Vec<Solid<'src>>,
@@ -54,13 +54,13 @@ pub struct Entity<'src> {
 #[derive(Debug, Clone)]
 enum EntityProperty<'src> {
     Id(u32),
-    Classname(String),
+    Classname(&'src str),
     Origin(Point3D),
     Angles(Point3D),
-    Targetname(String),
-    Parentname(String),
-    Target(String),
-    Model(String),
+    Targetname(&'src str),
+    Parentname(&'src str),
+    Target(&'src str),
+    Model(&'src str),
     Skin(u32),
     SpawnFlags(u32),
     RenderMode(u32),
@@ -70,14 +70,14 @@ enum EntityProperty<'src> {
     DisableReceiveShadows(bool),
     StartDisabled(bool),
     Editor(EditorData),
-    Connections(Vec<EntityOutput>),
+    Connections(Vec<EntityOutput<'src>>),
     Solid(Solid<'src>),
-    Custom(String, String),
+    Custom(&'src str, &'src str),
 }
 
 /// Parser for the connections block containing entity outputs
 fn parse_connections_block<'src, I>(
-) -> impl ChumskyParser<'src, I, Vec<EntityOutput>, TokenError<'src>>
+) -> impl ChumskyParser<'src, I, Vec<EntityOutput<'src>>, TokenError<'src>>
 where
     I: TokenSource<'src>,
 {
@@ -142,13 +142,13 @@ impl<'src> InternalParser<'src> for Entity<'src> {
         impl_block_properties_parser! {
             known_properties: EntityProperty = {
                 p_id                        = key_value_numeric("id")                          => EntityProperty::Id,
-                p_classname                 = key_value("classname")                           => |s: &str| EntityProperty::Classname(s.to_string()),
+                p_classname                 = key_value("classname")                           => |s: &str| EntityProperty::Classname(s),
                 p_origin                    = key_value_point3d("origin")                      => EntityProperty::Origin,
                 p_angles                    = key_value_point3d("angles")                      => EntityProperty::Angles,
-                p_targetname                = key_value("targetname")                          => |s: &str| EntityProperty::Targetname(s.to_string()),
-                p_parentname                = key_value("parentname")                          => |s: &str| EntityProperty::Parentname(s.to_string()),
-                p_target                    = key_value("target")                              => |s: &str| EntityProperty::Target(s.to_string()),
-                p_model                     = key_value("model")                               => |s: &str| EntityProperty::Model(s.to_string()),
+                p_targetname                = key_value("targetname")                          => |s: &str| EntityProperty::Targetname(s),
+                p_parentname                = key_value("parentname")                          => |s: &str| EntityProperty::Parentname(s),
+                p_target                    = key_value("target")                              => |s: &str| EntityProperty::Target(s),
+                p_model                     = key_value("model")                               => |s: &str| EntityProperty::Model(s),
                 p_skin                      = key_value_numeric("skin")                        => EntityProperty::Skin,
                 p_spawnflags                = key_value_numeric("spawnflags")                  => EntityProperty::SpawnFlags,
                 p_rendermode                = key_value_numeric("rendermode")                  => EntityProperty::RenderMode,
@@ -166,12 +166,9 @@ impl<'src> InternalParser<'src> for Entity<'src> {
         let solid_parser = Solid::parser().map(EntityProperty::Solid);
 
         // Custom property parser (catch-all for unknown properties)
-        let custom_property =
-            any_quoted_string()
-                .then(any_quoted_string())
-                .map(|(key, value): (&str, &str)| {
-                    EntityProperty::Custom(key.to_string(), value.to_string())
-                });
+        let custom_property = any_quoted_string()
+            .then(any_quoted_string())
+            .map(|(key, value): (&str, &str)| EntityProperty::Custom(key, value));
 
         // Combine all parsers
         let any_property = known_properties
@@ -284,22 +281,10 @@ mod tests {
         let entity = result.unwrap();
         assert_eq!(entity.id, 85);
         assert_eq!(entity.classname, "light");
-        assert_eq!(
-            entity.properties.get("_light"),
-            Some(&"255 255 255 400".to_string())
-        );
-        assert_eq!(
-            entity.properties.get("_lightHDR"),
-            Some(&"-1 -1 -1 1".to_string())
-        );
-        assert_eq!(
-            entity.properties.get("_lightscaleHDR"),
-            Some(&"1".to_string())
-        );
-        assert_eq!(
-            entity.properties.get("_quadratic_attn"),
-            Some(&"1".to_string())
-        );
+        assert_eq!(entity.properties.get("_light"), Some(&"255 255 255 400"));
+        assert_eq!(entity.properties.get("_lightHDR"), Some(&"-1 -1 -1 1"));
+        assert_eq!(entity.properties.get("_lightscaleHDR"), Some(&"1"));
+        assert_eq!(entity.properties.get("_quadratic_attn"), Some(&"1"));
     }
 
     #[test]
@@ -384,9 +369,9 @@ mod tests {
         assert!(result.is_ok(), "Parsing failed: {:?}", result.err());
 
         let entity = result.unwrap();
-        assert_eq!(entity.targetname, Some("main_door".to_string()));
-        assert_eq!(entity.target, Some("door_trigger".to_string()));
-        assert_eq!(entity.parentname, Some("door_parent".to_string()));
+        assert_eq!(entity.targetname, Some("main_door"));
+        assert_eq!(entity.target, Some("door_trigger"));
+        assert_eq!(entity.parentname, Some("door_parent"));
     }
 
     #[test]
