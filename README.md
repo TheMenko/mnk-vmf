@@ -17,16 +17,12 @@ VMF (Valve Map Format) is a text-based file format used by Source Engine level e
 - Cameras
 - Cordons
 
-## Installation
-
-Add this to your `Cargo.toml`:
+## Usage
 
 ```toml
 [dependencies]
 vmf = "0.1.0"
 ```
-
-## Usage
 
 ### Basic Example
 
