@@ -131,4 +131,52 @@ mod tests {
             }
         }
     }
+
+    #[test]
+    fn test_large_real_map() {
+        let path = Path::new("Gm_RunDownTown.vmf");
+
+        if !path.exists() {
+            eprintln!("Skipping large map test - file not found");
+            return;
+        }
+
+        println!("Parsing Gm_RunDownTown.vmf...");
+
+        let start = std::time::Instant::now();
+        let vmf = VMF::open(path).expect("Failed to open large VMF");
+        let open_time = start.elapsed();
+        println!("Open time: {:?}", open_time);
+
+        let start = std::time::Instant::now();
+        let data = vmf.parse().expect("Failed to parse large VMF");
+        let parse_time = start.elapsed();
+        println!("Parse time: {:?}", parse_time);
+
+        println!("Total blocks parsed: {}", data.len());
+
+        // Count different types
+        let mut world_count = 0;
+        let mut entity_count = 0;
+        let mut solid_count = 0;
+
+        for value in &data {
+            match value {
+                VMFValue::World(w) => {
+                    world_count += 1;
+                    solid_count += w.solids.len();
+                }
+                VMFValue::Entity(e) => {
+                    entity_count += 1;
+                    solid_count += e.solids.len();
+                }
+                _ => {}
+            }
+        }
+
+        println!("Worlds: {}", world_count);
+        println!("Entities: {}", entity_count);
+        println!("Total solids: {}", solid_count);
+        println!("Total time: {:?}", open_time + parse_time);
+    }
 }

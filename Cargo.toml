@@ -5,6 +5,10 @@ edition = "2021"
 
 [[bench]]
 harness = false
+name = "full_vmf"
+
+[[bench]]
+harness = false
 name = "versioninfo"
 
 [[bench]]
