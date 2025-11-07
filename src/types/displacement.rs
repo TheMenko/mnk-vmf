@@ -50,7 +50,7 @@ pub struct DispInfo {
     pub triangle_tags: Vec<u32>,
 
     // Allowed vertex positions
-    pub allowed_verts: Vec<u32>,
+    pub allowed_verts: Vec<i32>,
     pub flags: u32,
 }
 
@@ -68,7 +68,7 @@ enum DispInfoProperty {
     OffsetNormalsBlock(Vec<Point3D>),
     AlphasBlock(Vec<f32>),
     TriangleTagsBlock(Vec<u32>),
-    AllowedVertsBlock(Vec<u32>),
+    AllowedVertsBlock(Vec<i32>),
 }
 
 /// Helper to parse a row of displacement data (key-value pair where key is "rowN")
@@ -100,7 +100,7 @@ where
 }
 
 /// Parse a row of Point3D normals from a string like "x1 y1 z1 x2 y2 z2 ..."
-fn parse_normals_row(value_str: &str) -> Result<Vec<Point3D>, String> {
+fn parse_normals_row<'src>(value_str: &'src str) -> Result<Vec<Point3D>, String> {
     let parts: Vec<&str> = value_str.split_whitespace().collect();
     if parts.len() % 3 != 0 {
         return Err(format!(
@@ -144,6 +144,19 @@ fn parse_u32_row(value_str: &str) -> Result<Vec<u32>, String> {
         .iter()
         .map(|s| {
             s.parse::<u32>()
+                .map_err(|e| format!("invalid integer '{}': {}", s, e))
+        })
+        .collect()
+}
+
+/// Parse a row of i32 values from a string like "0 1 -1 2 ..."
+/// Used for allowed_verts which can contain -1 to mean "all vertices allowed"
+fn parse_i32_row(value_str: &str) -> Result<Vec<i32>, String> {
+    let parts: Vec<&str> = value_str.split_whitespace().collect();
+    parts
+        .iter()
+        .map(|s| {
+            s.parse::<i32>()
                 .map_err(|e| format!("invalid integer '{}': {}", s, e))
         })
         .collect()
@@ -245,7 +258,7 @@ impl<'src> InternalParser<'src> for DispInfo {
         let triangle_tags_parser =
             parse_row_data("triangle_tags", parse_u32_row).map(DispInfoProperty::TriangleTagsBlock);
         let allowed_verts_parser =
-            parse_row_data("allowed_verts", parse_u32_row).map(DispInfoProperty::AllowedVertsBlock);
+            parse_row_data("allowed_verts", parse_i32_row).map(DispInfoProperty::AllowedVertsBlock);
 
         impl_block_properties_parser! {
             property_list: DispInfoProperty = {

@@ -16,10 +16,10 @@ use super::DispInfo;
 
 /// Represents a side (face) of a solid brush
 #[derive(Debug, Default, Clone)]
-pub struct Side<'a> {
+pub struct Side<'src> {
     pub id: u32,
     pub plane: (Point3D, Point3D, Point3D),
-    pub material: &'a str,
+    pub material: &'src str,
     pub uaxis: TextureAxis,
     pub vaxis: TextureAxis,
     pub rotation: f32,
@@ -29,10 +29,10 @@ pub struct Side<'a> {
 }
 
 /// Side properties used for parser impl
-enum SideProperty<'a> {
+enum SideProperty<'src> {
     Id(u32),
     Plane((Point3D, Point3D, Point3D)),
-    Material(&'a str),
+    Material(&'src str),
     UAxis(TextureAxis),
     VAxis(TextureAxis),
     Rotation(f32),
