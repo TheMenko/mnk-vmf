@@ -55,10 +55,60 @@ pub fn lex(input: &str) -> Stream<IntoIter<lexer::Token<'_>>> {
 
 /// Produces a vector of tokens (for reuse or benchmarking).
 pub fn tokenize(input: &str) -> Vec<lexer::Token<'_>> {
-    lexer::Token::lexer(input).map(|tok| tok.unwrap()).collect()
+    lexer::Token::lexer(input)
+        .enumerate()
+        .map(|(idx, tok)| {
+            tok.unwrap_or_else(|_| {
+                let lexer = lexer::Token::lexer(input);
+                let span = lexer.span();
+                let context = &input
+                    [span.start.saturating_sub(20)..span.end.saturating_add(20).min(input.len())];
+                panic!(
+                    "Failed to tokenize at position {} (token #{})\nContext: {:?}",
+                    span.start, idx, context
+                );
+            })
+        })
+        .collect()
 }
 
 /// Wraps tokens into a Stream that Chumsky can parse.
 pub fn stream(tokens: Vec<lexer::Token<'_>>) -> Stream<IntoIter<lexer::Token<'_>>> {
     Stream::from_iter(tokens)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_tokenize_simple() {
+        let input = r#"world
+    {
+        "id" "1"
+    }"#;
+        let tokens = tokenize(input);
+        println!("Tokens: {:#?}", tokens);
+    }
+
+    #[test]
+    fn test_tokenize_with_special_chars() {
+        let input = r#""detail/detailsprites""#;
+        let tokens = tokenize(input);
+        println!("Tokens: {:#?}", tokens);
+    }
+
+    #[test]
+    fn test_tokenize_with_brackets() {
+        let input = r#""[1 0 0 0]""#;
+        let tokens = tokenize(input);
+        println!("Tokens: {:#?}", tokens);
+    }
+
+    #[test]
+    fn test_tokenize_negative_number() {
+        let input = r#""-1""#;
+        let tokens = tokenize(input);
+        println!("Tokens: {:#?}", tokens);
+    }
 }

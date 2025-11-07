@@ -193,6 +193,27 @@ where
     just(lexer::Token::RBracket).ignored()
 }
 
+/// Parses and skips any unknown/unrecognized block.
+/// It matches any identifier followed by a block, and recursively skips nested blocks.
+pub(crate) fn skip_unknown_block<'src, I>() -> impl ChumskyParser<'src, I, (), TokenError<'src>>
+where
+    I: TokenSource<'src>,
+{
+    recursive(|skip_block| {
+        any()
+            .filter(|tok| matches!(tok, lexer::Token::Ident(_)))
+            .ignore_then(just(lexer::Token::LBracket))
+            .ignore_then(
+                none_of([lexer::Token::LBracket, lexer::Token::RBracket])
+                    .ignored()
+                    .or(skip_block)
+                    .repeated(),
+            )
+            .then_ignore(just(lexer::Token::RBracket))
+            .ignored()
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use crate::util::lex;

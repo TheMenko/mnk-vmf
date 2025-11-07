@@ -3,7 +3,7 @@ use std::path::Path;
 
 use crate::error::VMFError;
 use crate::parser::util::{stream, tokenize};
-use crate::parser::InternalParser;
+use crate::parser::{skip_unknown_block, InternalParser};
 use crate::types::entity::*;
 use crate::types::*;
 
@@ -74,11 +74,16 @@ fn parse_vmf_from_str<'src>(src: &'src str) -> Result<Vec<VMFValue<'src>>, VMFEr
         Cordon::parser().map(|v| VMFValue::Cordon(Box::new(v))),
     ));
 
+    let any_block = any_block
+        .map(|v| Some(v))
+        .or(skip_unknown_block().map(|_| None));
+
     let all_blocks_parser = any_block.repeated().collect::<Vec<_>>();
 
     all_blocks_parser
         .parse(token_stream)
         .into_result()
+        .map(|blocks| blocks.into_iter().flatten().collect())
         .map_err(|errors| {
             let error_msg = errors
                 .into_iter()
