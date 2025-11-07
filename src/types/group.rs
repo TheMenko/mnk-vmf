@@ -26,19 +26,27 @@ enum GroupProperty<'src> {
     Child(Group<'src>),
 }
 
+/// Public parser trait implementation that allows [`Group`] to use ::parse(input) call.
 impl<'src> Parser<'src> for Group<'src> {}
 
-// group
-// 	{
-// 		"id" "772983"
-// 		editor
-// 		{
-// 			"color" "254 255 0"
-// 			"groupid" "772977"
-// 			"visgroupshown" "1"
-// 			"visgroupautoshown" "1"
-// 		}
-// 	}
+/// A [`InternalParser`] implementation for [`Group`].
+///
+/// usage: `let editor = Group::parser().parse(input);`.
+///
+/// The format that is being parsed here is:
+/// ```ignore
+/// group
+/// 	{
+/// 		"id" "772983"
+/// 		editor
+/// 		{
+/// 			"color" "254 255 0"
+/// 			"groupid" "772977"
+/// 			"visgroupshown" "1"
+/// 			"visgroupautoshown" "1"
+/// 		}
+/// 	}
+///```
 impl<'src> InternalParser<'src> for Group<'src> {
     fn parser<I>() -> impl ChumskyParser<'src, I, Self, TokenError<'src>>
     where

@@ -68,39 +68,6 @@ fn bench_full_vmf_parsing(c: &mut Criterion) {
     group.finish();
 }
 
-fn bench_memory_comparison(c: &mut Criterion) {
-    let filename = "Gm_RunDownTown.vmf";
-    let path = Path::new(filename);
-
-    if !path.exists() {
-        eprintln!("Skipping memory comparison - {} not found", filename);
-        return;
-    }
-
-    let mut group = c.benchmark_group("memory_comparison");
-
-    // Benchmark: mmap-based approach (current)
-    group.bench_function("mmap_approach", |b| {
-        b.iter(|| {
-            let vmf = VMF::open(path).expect("Failed to open VMF");
-            let data = vmf.parse().expect("Failed to parse VMF");
-            black_box(data);
-        });
-    });
-
-    // Benchmark: traditional read_to_string approach
-    group.bench_function("read_to_string_approach", |b| {
-        b.iter(|| {
-            let contents = std::fs::read_to_string(path).expect("Failed to read file");
-            let tokens = vmf::util::tokenize(black_box(&contents));
-            black_box(tokens);
-            // Note: Can't parse since it needs the VMF struct
-        });
-    });
-
-    group.finish();
-}
-
 fn bench_incremental_access(c: &mut Criterion) {
     let filename = "Gm_RunDownTown.vmf";
     let path = Path::new(filename);
@@ -126,10 +93,5 @@ fn bench_incremental_access(c: &mut Criterion) {
     group.finish();
 }
 
-criterion_group!(
-    benches,
-    bench_full_vmf_parsing,
-    bench_memory_comparison,
-    bench_incremental_access
-);
+criterion_group!(benches, bench_full_vmf_parsing, bench_incremental_access);
 criterion_main!(benches);
