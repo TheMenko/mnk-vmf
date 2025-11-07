@@ -1,7 +1,9 @@
+use chumsky::input::Stream;
 use memmap2::{Mmap, MmapOptions};
 use std::path::Path;
 
 use crate::error::VMFError;
+use crate::parser::lexer::TokenIter;
 use crate::parser::util::{stream, tokenize};
 use crate::parser::{skip_unknown_block, InternalParser};
 use crate::types::entity::*;
@@ -61,8 +63,8 @@ impl VMF {
 /// Parse VMF data from a string slice.
 /// Uses a sequential parser that handles all top-level blocks in order.
 fn parse_vmf_from_str<'src>(src: &'src str) -> Result<Vec<VMFValue<'src>>, VMFError> {
-    let tokens = tokenize(src);
-    let token_stream = stream(tokens);
+    let token_iter = TokenIter::new(src).map(|tok| tok.expect("valid token"));
+    let token_stream = Stream::from_iter(token_iter);
 
     let any_block = choice((
         VersionInfo::parser().map(VMFValue::VersionInfo),

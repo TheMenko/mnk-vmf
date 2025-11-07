@@ -1,2 +1,7 @@
 /target
 Cargo.lock
+perf.*
+
+Cargo.lock
+examples/profile_vmf.rs
+perf.*

@@ -24,3 +24,23 @@ pub enum Token<'a> {
     #[regex(r"[ \t\f\r\n]+", logos::skip)]
     Whitespace,
 }
+
+pub(crate) struct TokenIter<'a> {
+    inner: logos::Lexer<'a, Token<'a>>,
+}
+
+impl<'a> TokenIter<'a> {
+    pub fn new(input: &'a str) -> Self {
+        TokenIter {
+            inner: Token::lexer(input),
+        }
+    }
+}
+
+impl<'a> Iterator for TokenIter<'a> {
+    type Item = Result<Token<'a>, ()>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.inner.next()
+    }
+}
