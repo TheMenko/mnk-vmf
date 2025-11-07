@@ -22,25 +22,26 @@ impl<'src> EntityOutput<'src> {
     /// Parse an output string in the format: "target,input,parameter,delay,times_to_fire"
     /// Example: "motor*,TurnOn,,0,-1"
     pub fn parse_output_string(output_name: &'src str, value: &'src str) -> Result<Self, String> {
-        let parts: Vec<&str> = value.split(',').collect();
-        if parts.len() != 5 {
-            return Err(format!(
-                "expected 5 comma-separated values, found {}",
-                parts.len()
-            ));
-        }
+        let mut parts = value.split(',').map(|split| split.trim());
 
-        let target = parts[0].trim();
-        let input = parts[1].trim();
-        let parameter = parts[2].trim();
-        let delay = parts[3]
-            .trim()
-            .parse::<f32>()
-            .map_err(|e| format!("invalid delay '{}': {}", parts[3], e))?;
-        let times_to_fire = parts[4]
-            .trim()
-            .parse::<i32>()
-            .map_err(|e| format!("invalid times_to_fire '{}': {}", parts[4], e))?;
+        let (target, input, parameter, delay, times_to_fire) = match (
+            parts.next(),
+            parts.next(),
+            parts.next(),
+            parts.next(),
+            parts.next(),
+        ) {
+            (Some(a), Some(b), Some(c), Some(d), Some(e)) => {
+                let delay = d
+                    .parse::<f32>()
+                    .map_err(|e| format!("invalid delay '{}': {}", d, e))?;
+                let times_to_fire = e
+                    .parse::<i32>()
+                    .map_err(|e| format!("invalid times_to_fire '{}': {}", e, e))?;
+                (a, b, c, delay, times_to_fire)
+            }
+            _ => return Err("expected at least 5 comma-separated values".into()),
+        };
 
         Ok(EntityOutput::<'src> {
             output_name,
