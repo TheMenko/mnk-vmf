@@ -3,8 +3,8 @@ use chumsky::Parser as ChumskyParser;
 
 use crate::impl_block_properties_parser;
 use crate::parser::{
-    close_block, key_value, key_value_numeric, number, open_block, InternalParser, TokenError,
-    TokenSource,
+    close_block, key_value, key_value_numeric, number, open_block, skip_unknown_block,
+    InternalParser, TokenError, TokenSource,
 };
 use crate::types::point::key_value_plane;
 use crate::types::textureaxis::key_value_texture_axis;
@@ -79,22 +79,34 @@ impl<'src> InternalParser<'src> for Side<'src> {
             }
         }
 
+        let dispinfo_parser = DispInfo::parser().map(SideProperty::DispInfo);
+        let any_property_or_block = property_list
+            .or(dispinfo_parser)
+            .map(Some)
+            .or(skip_unknown_block().map(|_| None));
+
         open_block("side")
-            .ignore_then(property_list.repeated().collect::<Vec<SideProperty>>())
+            .ignore_then(
+                any_property_or_block
+                    .repeated()
+                    .collect::<Vec<Option<SideProperty>>>(),
+            )
             .then_ignore(close_block())
-            .map(|properties: Vec<SideProperty>| {
+            .map(|properties: Vec<Option<SideProperty>>| {
                 let mut side = Side::default();
-                for prop in properties {
-                    match prop {
-                        SideProperty::Id(val) => side.id = val,
-                        SideProperty::Plane(val) => side.plane = val,
-                        SideProperty::Material(val) => side.material = val,
-                        SideProperty::UAxis(val) => side.uaxis = val,
-                        SideProperty::VAxis(val) => side.vaxis = val,
-                        SideProperty::Rotation(val) => side.rotation = val,
-                        SideProperty::LightmapScale(val) => side.lightmapscale = val,
-                        SideProperty::SmoothingGroups(val) => side.smoothing_groups = val,
-                        SideProperty::DispInfo(val) => side.dispinfo = Some(val),
+                for prop_opt in properties {
+                    if let Some(prop) = prop_opt {
+                        match prop {
+                            SideProperty::Id(val) => side.id = val,
+                            SideProperty::Plane(val) => side.plane = val,
+                            SideProperty::Material(val) => side.material = val,
+                            SideProperty::UAxis(val) => side.uaxis = val,
+                            SideProperty::VAxis(val) => side.vaxis = val,
+                            SideProperty::Rotation(val) => side.rotation = val,
+                            SideProperty::LightmapScale(val) => side.lightmapscale = val,
+                            SideProperty::SmoothingGroups(val) => side.smoothing_groups = val,
+                            SideProperty::DispInfo(val) => side.dispinfo = Some(val),
+                        }
                     }
                 }
                 side
