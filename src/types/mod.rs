@@ -9,6 +9,7 @@ mod visgroup;
 
 // World and geometry types
 mod displacement;
+mod group;
 mod side;
 mod solid;
 mod textureaxis;
@@ -26,6 +27,7 @@ pub use cordon::*;
 pub use displacement::*;
 pub use editor::*;
 pub use entity::*;
+pub use group::*;
 pub use side::*;
 pub use solid::*;
 pub use versioninfo::*;

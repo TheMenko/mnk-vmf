@@ -3,8 +3,8 @@ use chumsky::{IterParser, Parser as ChumskyParser};
 use crate::{
     impl_block_properties_parser,
     parser::{
-        any_quoted_string, close_block, key_value, key_value_boolean, open_block, InternalParser,
-        TokenError, TokenSource,
+        any_quoted_string, close_block, key_value, key_value_boolean, key_value_numeric,
+        open_block, InternalParser, TokenError, TokenSource,
     },
     types::Color,
     Parser,
@@ -16,6 +16,7 @@ pub struct EditorData<'src> {
     pub color: Color,
     pub visgroupshown: bool,
     pub visgroupautoshown: bool,
+    pub groupid: Option<u32>,
     pub comments: Option<&'src str>,
     pub logicalpos: Option<&'src str>,
 }
@@ -26,6 +27,7 @@ enum EditorDataProperty<'src> {
     Color(Color),
     VisGroupShown(bool),
     VisGroupAutoShown(bool),
+    GroupId(u32),
     Comments(&'src str),
     LogicalPos(&'src str),
 }
@@ -58,6 +60,7 @@ impl<'src> InternalParser<'src> for EditorData<'src> {
                 p_color                = Color::parser()                       => EditorDataProperty::Color,
                 p_visgroupshown        = key_value_boolean("visgroupshown")    => EditorDataProperty::VisGroupShown,
                 p_visgroupautoshown    = key_value_boolean("visgroupautoshown") => EditorDataProperty::VisGroupAutoShown,
+                p_groupid              = key_value_numeric("groupid")          => EditorDataProperty::GroupId,
                 p_comments             = key_value("comments")                 => |s: &str| EditorDataProperty::Comments(s),
                 p_logicalpos           = key_value("logicalpos")               => |s: &str| EditorDataProperty::LogicalPos(s),
             }
@@ -79,6 +82,7 @@ impl<'src> InternalParser<'src> for EditorData<'src> {
                         EditorDataProperty::VisGroupAutoShown(val) => {
                             editor.visgroupautoshown = val
                         }
+                        EditorDataProperty::GroupId(val) => editor.groupid = Some(val),
                         EditorDataProperty::Comments(val) => editor.comments = Some(val),
                         EditorDataProperty::LogicalPos(val) => editor.logicalpos = Some(val),
                     }

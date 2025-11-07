@@ -11,6 +11,8 @@ use crate::{
     Parser,
 };
 
+use super::Group;
+
 /// Represents the worldspawn entity in a VMF file
 #[derive(Debug, Default)]
 pub struct World<'src> {
@@ -44,7 +46,7 @@ pub struct World<'src> {
 
     // Editor data
     pub hidden: Option<bool>,
-    pub group: Option<u32>,
+    pub group: Option<Group<'src>>,
     pub editor: Option<EditorData<'src>>,
 }
 
@@ -69,7 +71,7 @@ enum WorldProperty<'src> {
     Targetname(&'src str),
     Target(&'src str),
     Hidden(bool),
-    Group(u32),
+    Group(Group<'src>),
     Editor(EditorData<'src>),
     Solid(Solid<'src>),
     Custom(&'src str, &'src str),
@@ -104,7 +106,7 @@ impl<'src> InternalParser<'src> for World<'src> {
                 p_targetname            = key_value("targetname")                     => |s: &str| WorldProperty::Targetname(s),
                 p_target                = key_value("target")                         => |s: &str| WorldProperty::Target(s),
                 p_hidden                = key_value_boolean("hidden")                 => WorldProperty::Hidden,
-                p_group                 = key_value_numeric("group")                  => WorldProperty::Group,
+                p_group                 = Group::parser()                             => WorldProperty::Group,
             }
         }
 
@@ -475,7 +477,35 @@ mod tests {
 
         let world = result.unwrap();
         assert_eq!(world.hidden, Some(true));
-        assert_eq!(world.group, Some(5));
+    }
+
+    #[test]
+    fn test_world_with_group_block() {
+        let input = r#"
+        world
+        {
+            "id" "1"
+            "classname" "worldspawn"
+            group
+            {
+                "id" "42"
+                group
+                {
+                    "id" "99"
+                }
+            }
+        }
+        "#;
+
+        let stream = lex(input);
+        let result = World::parse(stream);
+        assert!(result.is_ok(), "Parsing failed: {:?}", result.err());
+
+        let world = result.unwrap();
+        let group = world.group.unwrap();
+        assert_eq!(group.id, 42);
+        assert_eq!(group.groups.len(), 1);
+        assert_eq!(group.groups[0].id, 99);
     }
 
     #[test]
