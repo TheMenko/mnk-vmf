@@ -2,6 +2,10 @@
 name = "mnk-vmf"
 version = "0.1.0"
 edition = "2024"
+description = "A library for parsing Valve Map Format (VMF) files."
+homepage = "https://github.com/TheMenko/mnk-vmf"
+repository = "https://github.com/TheMenko/mnk-vmf"
+license = "MIT or Apache-2.0"
 
 [[bench]]
 harness = false
