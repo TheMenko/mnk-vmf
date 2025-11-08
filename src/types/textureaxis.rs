@@ -13,26 +13,27 @@ pub struct TextureAxis {
 
 /// Helper to parse a string segment like "1.0 0.0 0.0 16.0" into (x, y, z, shift)
 fn parse_texture_vector_str(numbers_str: &str) -> Result<(f32, f32, f32, f32), String> {
-    let parts: Vec<&str> = numbers_str.split_whitespace().collect();
-    if parts.len() != 4 {
-        return Err(format!(
-            "expected 4 numbers for texture vector, found {}",
-            parts.len()
-        ));
+    let mut parts = numbers_str.split_whitespace();
+
+    if let (Some(x_str), Some(y_str), Some(z_str), Some(shift_str)) =
+        (parts.next(), parts.next(), parts.next(), parts.next())
+    {
+        let x = x_str
+            .parse::<f32>()
+            .map_err(|e| format!("invalid x '{}': {}", x_str, e))?;
+        let y = y_str
+            .parse::<f32>()
+            .map_err(|e| format!("invalid y '{}': {}", y_str, e))?;
+        let z = z_str
+            .parse::<f32>()
+            .map_err(|e| format!("invalid z '{}': {}", z_str, e))?;
+        let shift = shift_str
+            .parse::<f32>()
+            .map_err(|e| format!("invalid shift '{}': {}", shift_str, e))?;
+        return Ok((x, y, z, shift));
+    } else {
+        return Err("expected multiple of 3 numbers".into());
     }
-    let x = parts[0]
-        .parse::<f32>()
-        .map_err(|e| format!("invalid x '{}': {}", parts[0], e))?;
-    let y = parts[1]
-        .parse::<f32>()
-        .map_err(|e| format!("invalid y '{}': {}", parts[1], e))?;
-    let z = parts[2]
-        .parse::<f32>()
-        .map_err(|e| format!("invalid z '{}': {}", parts[2], e))?;
-    let shift = parts[3]
-        .parse::<f32>()
-        .map_err(|e| format!("invalid shift '{}': {}", parts[3], e))?;
-    Ok((x, y, z, shift))
 }
 
 /// Parses a "uaxis" or "vaxis" to get a [`TextureAxis`]
