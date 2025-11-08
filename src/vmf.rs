@@ -1,12 +1,9 @@
 use chumsky::input::Stream;
-use memmap2::{Mmap, MmapOptions};
 use std::path::Path;
 
 use crate::error::VMFError;
 use crate::parser::lexer::TokenIter;
-use crate::parser::util::{stream, tokenize};
 use crate::parser::{skip_unknown_block, InternalParser};
-use crate::types::entity::*;
 use crate::types::*;
 
 use chumsky::primitive::choice;
@@ -29,11 +26,11 @@ pub enum VMFValue<'src> {
 /// Use `parse()` to get parsed data that borrows from this instance.
 #[allow(clippy::upper_case_acronyms)]
 pub struct VMF {
-    mmap: Mmap,
+    data: String,
 }
 
 impl VMF {
-    /// Opens and memory-maps a VMF file.
+    /// Opens a VMF file.
     ///
     /// # Example
     /// ```ignore
@@ -42,21 +39,19 @@ impl VMF {
     /// // Use data..
     /// ```
     pub fn open(path: impl AsRef<Path>) -> Result<Self, VMFError> {
-        let file = std::fs::File::open(path)?;
-        let mmap = unsafe { MmapOptions::new().map(&file)? };
-        Ok(VMF { mmap })
+        let data = std::fs::read_to_string(path)?;
+        Ok(VMF { data })
     }
 
     /// Parse the VMF file and return the parsed data.
     /// The returned data borrows from this VMF instance.
     pub fn parse(&self) -> Result<Vec<VMFValue>, VMFError> {
-        let src = self.as_str()?;
-        parse_vmf_from_str(src)
+        parse_vmf_from_str(&self.data)
     }
 
     /// Get the raw file content as a string slice.
-    pub fn as_str(&self) -> Result<&str, std::str::Utf8Error> {
-        std::str::from_utf8(&self.mmap)
+    pub fn as_str(&self) -> &str {
+        &self.data
     }
 }
 

@@ -1,5 +1,5 @@
 [package]
-name = "vmf"
+name = "mnk-vmf"
 version = "0.1.0"
 edition = "2021"
 
@@ -58,7 +58,6 @@ harness = false
 [dependencies]
 chumsky = "0.10"
 logos = "0.15"
-memmap2 = "0.9"
 thiserror = "2.0"
 
 [dev-dependencies]

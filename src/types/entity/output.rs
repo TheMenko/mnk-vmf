@@ -1,11 +1,6 @@
 use chumsky::Parser as ChumskyParser;
 
-use crate::{
-    parser::{
-        any_quoted_string, key_value, quoted_string, InternalParser, TokenError, TokenSource,
-    },
-    Parser,
-};
+use crate::parser::{any_quoted_string, TokenError, TokenSource};
 
 /// Represents an output connection between entities
 #[derive(Debug, Default, Clone)]

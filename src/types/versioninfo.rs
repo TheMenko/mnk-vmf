@@ -1,8 +1,7 @@
-use chumsky::{prelude::*, span::Span, Parser as ChumskyParser};
+use chumsky::Parser as ChumskyParser;
 
 use crate::parser::{
-    close_block, error::VMFParserError, key_value, key_value_numeric, lexer, open_block,
-    InternalParser, Parser, TokenError, TokenSource,
+    close_block, key_value_numeric, open_block, InternalParser, Parser, TokenError, TokenSource,
 };
 
 /// `VersionInfo` holds the VMF Header information.
@@ -74,8 +73,7 @@ mod tests {
     use crate::util::lex;
 
     use super::*;
-    use chumsky::{input::Stream, Parser};
-    use logos::Logos as _;
+    use chumsky::Parser;
 
     #[test]
     fn test_version_info_parser() {

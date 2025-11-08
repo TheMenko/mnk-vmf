@@ -3,8 +3,8 @@ use chumsky::{IterParser, Parser as ChumskyParser};
 use crate::{
     impl_block_properties_parser,
     parser::{
-        close_block, key_value, key_value_boolean, key_value_numeric, open_block, InternalParser,
-        TokenError, TokenSource,
+        close_block, key_value_boolean, key_value_numeric, open_block, InternalParser, TokenError,
+        TokenSource,
     },
     Parser,
 };
@@ -135,8 +135,7 @@ mod tests {
     use crate::{parser::lexer::Token, util::lex, Parser};
 
     use super::*;
-    use chumsky::{error::RichReason, input::Stream, Parser as ChumskyParser};
-    use logos::Logos as _;
+    use chumsky::error::RichReason;
 
     fn parse_viewsettings_str(input_str: &str) -> Result<ViewSettings, Vec<RichReason<Token<'_>>>> {
         ViewSettings::parse(lex(input_str))
@@ -212,7 +211,7 @@ mod tests {
         );
 
         let settings = result.unwrap();
-        let mut expected = ViewSettings {
+        let expected = ViewSettings {
             snap_to_grid: true,
             grid_spacing: 32,
             show_wireframe: false,
@@ -240,7 +239,7 @@ mod tests {
         );
 
         let settings = result.unwrap();
-        let mut expected = ViewSettings {
+        let expected = ViewSettings {
             grid_spacing: 16,
             show_grid: false,
             snap_to_grid: true,
@@ -276,7 +275,7 @@ mod tests {
         viewsettings
         {
             "bSnapToGrid" "1"
-            "bUnknownKey" "some_value" 
+            "bUnknownKey" "some_value"
             "nGridSpacing" "64"
         }"#;
 
@@ -295,8 +294,8 @@ mod tests {
         viewsettings
         {
             "bSnapToGrid" "1"
-            "bShowGrid" "1"            
-            "bUnknownKey" "some_value" 
+            "bShowGrid" "1"
+            "bUnknownKey" "some_value"
         }"#; // Missing closing brace technically
 
         let result = parse_viewsettings_str(input);
@@ -327,7 +326,7 @@ mod tests {
         let input = r#"
         viewsettings
         {
-            "bSnapToGrid" "not_a_boolean" 
+            "bSnapToGrid" "not_a_boolean"
         }"#;
 
         let result = parse_viewsettings_str(input);
@@ -345,7 +344,7 @@ mod tests {
         {
             "bSnapToGrid" "0"
             "nGridSpacing" "32"
-            "bSnapToGrid" "1" 
+            "bSnapToGrid" "1"
             "nGridSpacing" "64"
         }"#;
 
@@ -357,7 +356,7 @@ mod tests {
         );
 
         let settings = result.unwrap();
-        let mut expected = ViewSettings {
+        let expected = ViewSettings {
             snap_to_grid: true,
             grid_spacing: 64,
             ..Default::default()
@@ -414,7 +413,7 @@ mod tests {
         {
             "bSnapToGrid" "1"
         }
-        "extrastuff" "not good" 
+        "extrastuff" "not good"
         "#;
         let result = parse_viewsettings_str(input);
         assert!(

@@ -1,4 +1,4 @@
-use chumsky::error::{Error as ChumError, Rich};
+use chumsky::error::Rich;
 use thiserror::Error;
 
 // TODO: Implement a custom chumsky error

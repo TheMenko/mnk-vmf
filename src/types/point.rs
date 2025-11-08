@@ -1,12 +1,6 @@
-use chumsky::{
-    error::Rich, extra::ParserExtra, input::ValueInput, label::LabelError, prelude::*, select,
-    text, util::Maybe, Parser as ChumskyParser,
-};
+use chumsky::{error::Rich, Parser as ChumskyParser};
 
-use crate::{
-    parser::{any_quoted_string, quoted_string, InternalParser, TokenError, TokenSource},
-    Parser,
-};
+use crate::parser::{any_quoted_string, quoted_string, TokenError, TokenSource};
 
 #[derive(Debug, Default, Copy, Clone, PartialEq)]
 pub struct Point3D {

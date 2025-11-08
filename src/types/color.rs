@@ -1,12 +1,9 @@
 use crate::{
-    parser::{
-        any_quoted_string, close_block, lexer, number, open_block, quoted_string, InternalParser,
-        TokenError, TokenSource,
-    },
+    parser::{any_quoted_string, quoted_string, InternalParser, TokenError, TokenSource},
     Parser,
 };
 
-use chumsky::{error::Rich, extra, prelude::just, Parser as ChumskyParser};
+use chumsky::{error::Rich, Parser as ChumskyParser};
 
 /// Represents an RGB color with three components
 #[derive(Default, Debug, Clone, Copy, PartialEq)]
@@ -51,8 +48,6 @@ impl<'src> InternalParser<'src> for Color {
 
 #[cfg(test)]
 mod tests {
-    use chumsky::input::Stream;
-    use logos::Logos as _;
 
     use crate::util::lex;
 
@@ -81,7 +76,8 @@ mod tests {
         ];
         for &input in &cases {
             let stream = lex(input);
-            let res = Color::parse(stream).expect("Color should parse");
+            let res = Color::parse(stream);
+            assert!(res.is_ok());
         }
     }
 

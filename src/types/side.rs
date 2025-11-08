@@ -3,8 +3,8 @@ use chumsky::Parser as ChumskyParser;
 
 use crate::impl_block_properties_parser;
 use crate::parser::{
-    close_block, key_value, key_value_numeric, number, open_block, skip_unknown_block,
-    InternalParser, TokenError, TokenSource,
+    close_block, key_value, key_value_numeric, open_block, skip_unknown_block, InternalParser,
+    TokenError, TokenSource,
 };
 use crate::types::point::key_value_plane;
 use crate::types::textureaxis::key_value_texture_axis;
@@ -116,15 +116,10 @@ impl<'src> InternalParser<'src> for Side<'src> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{parser::lexer::Token, util::lex, Parser};
+    use crate::util::lex;
 
     use super::*;
-    use chumsky::{error::RichReason, input::Stream, Parser as ChumskyParser};
-    use logos::Logos as _;
-
-    fn default_plane() -> (Point3D, Point3D, Point3D) {
-        (Point3D::default(), Point3D::default(), Point3D::default())
-    }
+    use chumsky::Parser as ChumskyParser;
 
     #[test]
     fn test_parse_side_complete_valid_order() {

@@ -1,5 +1,5 @@
 use criterion::{criterion_group, criterion_main, Criterion};
-use vmf::{
+use mnk_vmf::{
     types::VersionInfo,
     util::{stream, tokenize},
     Parser,

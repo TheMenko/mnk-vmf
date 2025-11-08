@@ -1,6 +1,6 @@
 use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
+use mnk_vmf::vmf::VMF;
 use std::path::Path;
-use vmf::vmf::VMF;
 
 fn bench_full_vmf_parsing(c: &mut Criterion) {
     let test_files = [
@@ -56,9 +56,9 @@ fn bench_full_vmf_parsing(c: &mut Criterion) {
             filename,
             |b, &filename| {
                 let vmf = VMF::open(Path::new(filename)).expect("Failed to open VMF");
-                let src = vmf.as_str().expect("Failed to get string");
+                let src = vmf.as_str();
                 b.iter(|| {
-                    let tokens = vmf::util::tokenize(black_box(src));
+                    let tokens = mnk_vmf::util::tokenize(black_box(src));
                     black_box(tokens);
                 });
             },

@@ -1,11 +1,8 @@
-use chumsky::{
-    prelude::{just, recursive},
-    IterParser, Parser as ChumskyParser,
-};
+use chumsky::{prelude::recursive, IterParser, Parser as ChumskyParser};
 
 use crate::{
     parser::{
-        any_quoted_string, close_block, lexer, number, open_block, quoted_string, InternalParser,
+        any_quoted_string, close_block, number, open_block, quoted_string, InternalParser,
         TokenError, TokenSource,
     },
     types::Color,
@@ -70,7 +67,7 @@ impl<'src> Parser<'src> for VisGroups<'src> {}
 /// ```ignore
 /// visgroups
 /// {
-///  
+///
 ///     visgroup
 ///     {
 ///        ...
@@ -141,10 +138,7 @@ impl<'src> InternalParser<'src> for VisGroup<'src> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{
-        parser::{util::lex, TokenSource},
-        Parser,
-    };
+    use crate::{parser::util::lex, Parser};
 
     #[test]
     fn test_single_visgroup() {

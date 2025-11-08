@@ -3,8 +3,8 @@ use chumsky::{IterParser, Parser as ChumskyParser};
 use crate::{
     impl_block_properties_parser,
     parser::{
-        any_quoted_string, close_block, key_value, key_value_boolean, key_value_numeric,
-        open_block, InternalParser, TokenError, TokenSource,
+        close_block, key_value, key_value_boolean, key_value_numeric, open_block, InternalParser,
+        TokenError, TokenSource,
     },
     types::Color,
     Parser,

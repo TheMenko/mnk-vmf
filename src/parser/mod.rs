@@ -2,29 +2,14 @@ pub(crate) mod error;
 pub(crate) mod lexer;
 pub mod util;
 
-use std::vec::IntoIter;
-
 use chumsky::{
-    combinator::Repeated,
     error::{Rich, RichReason},
     extra,
-    input::{Stream, ValueInput},
+    input::ValueInput,
     prelude::*,
-    primitive::OneOf,
     span::SimpleSpan,
-    text, IterParser, Parser as ChumskyParser,
+    Parser as ChumskyParser,
 };
-use error::VMFParserError;
-use logos::Logos as _;
-
-#[derive(Debug, PartialEq)]
-pub enum VmfKeyValue {
-    String(String),
-    Boolean(bool),
-    Int(i64),
-    Float(f64),
-    Array(Vec<VmfKeyValue>),
-}
 
 /// A shorthand alias for any input source that produces our `lexer::Token` values
 /// along with `SimpleSpan` offsets, and supports value-based parsing (cloning tokens).
@@ -219,9 +204,7 @@ mod tests {
     use crate::util::lex;
 
     use super::*;
-    use chumsky::prelude::SimpleSpan;
-    use chumsky::{input::Stream, ParseResult, Parser};
-    use logos::Logos as _;
+    use chumsky::Parser;
 
     #[test]
     fn test_number() {
@@ -247,7 +230,7 @@ mod tests {
     #[test]
     fn test_key_value_numeric() {
         let stream = lex(r#""num" "42""#);
-        let mut result = key_value_numeric::<u32, _>("num").parse(stream);
+        let result = key_value_numeric::<u32, _>("num").parse(stream);
         assert!(!result.has_errors());
         assert_eq!(result.unwrap(), 42);
     }
@@ -255,14 +238,14 @@ mod tests {
     #[test]
     fn test_open_close_block() {
         let stream = lex("blk {");
-        let mut r1 = open_block("blk").parse(stream);
+        let r1 = open_block("blk").parse(stream);
         for e in r1.errors() {
             println!("error: {:?}", e.reason());
         }
         assert!(!r1.has_errors());
 
         let stream = lex("}");
-        let mut r2 = close_block().parse(stream);
+        let r2 = close_block().parse(stream);
         for e in r1.errors() {
             println!("error: {:?}", e.reason());
         }

@@ -111,7 +111,6 @@ where
 mod tests {
     use super::*;
     use crate::util::lex;
-    use chumsky::Parser as _;
 
     #[test]
     fn test_parse_valid_uaxis() {

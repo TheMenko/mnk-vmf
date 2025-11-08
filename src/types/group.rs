@@ -1,13 +1,8 @@
-use std::collections::HashMap;
-
 use chumsky::{prelude::recursive, IterParser, Parser as ChumskyParser};
 
 use crate::{
     impl_block_properties_parser,
-    parser::{
-        any_quoted_string, close_block, key_value_numeric, open_block, skip_unknown_block,
-        InternalParser, TokenError, TokenSource,
-    },
+    parser::{close_block, key_value_numeric, open_block, InternalParser, TokenError, TokenSource},
     types::EditorData,
     Parser,
 };
