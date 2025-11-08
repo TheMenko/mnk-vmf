@@ -85,6 +85,7 @@ cargo build --release
 ```bash
 cargo test
 ```
+note: This crate uses over 150 tests, and almost everything is covered.
 
 ### Running Benchmarks
 
