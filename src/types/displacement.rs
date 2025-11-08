@@ -101,27 +101,28 @@ where
 
 /// Parse a row of Point3D normals from a string like "x1 y1 z1 x2 y2 z2 ..."
 fn parse_normals_row<'src>(value_str: &'src str) -> Result<Vec<Point3D>, String> {
-    let parts: Vec<&str> = value_str.split_whitespace().collect();
-    if parts.len() % 3 != 0 {
-        return Err(format!(
-            "expected multiple of 3 numbers, found {}",
-            parts.len()
-        ));
+    let mut normals = Vec::new();
+    let mut parts = value_str.split_whitespace();
+
+    loop {
+        match (parts.next(), parts.next(), parts.next()) {
+            (Some(x_str), Some(y_str), Some(z_str)) => {
+                let x = x_str
+                    .parse::<f32>()
+                    .map_err(|e| format!("invalid x '{}': {}", x_str, e))?;
+                let y = y_str
+                    .parse::<f32>()
+                    .map_err(|e| format!("invalid y '{}': {}", y_str, e))?;
+                let z = z_str
+                    .parse::<f32>()
+                    .map_err(|e| format!("invalid z '{}': {}", z_str, e))?;
+                normals.push(Point3D { x, y, z });
+            }
+            (None, None, None) => break,
+            _ => return Err("expected multiple of 3 numbers".into()),
+        }
     }
 
-    let mut normals = Vec::new();
-    for chunk in parts.chunks(3) {
-        let x = chunk[0]
-            .parse::<f32>()
-            .map_err(|e| format!("invalid x '{}': {}", chunk[0], e))?;
-        let y = chunk[1]
-            .parse::<f32>()
-            .map_err(|e| format!("invalid y '{}': {}", chunk[1], e))?;
-        let z = chunk[2]
-            .parse::<f32>()
-            .map_err(|e| format!("invalid z '{}': {}", chunk[2], e))?;
-        normals.push(Point3D { x, y, z });
-    }
     Ok(normals)
 }
 
