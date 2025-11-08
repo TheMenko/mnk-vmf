@@ -1,6 +1,6 @@
 //! # mnk-vmf
 //!
-//! A fast, zero-copy parser for Valve Map Format (VMF) files used in Source engine games.
+//! A fast parser for Valve Map Format (VMF) files used in Source engine.
 //!
 //! This crate provides efficient parsing of VMF files into a strongly-typed AST, with support
 //! for all major VMF constructs including worlds, entities, solids, displacements, and more.
@@ -8,17 +8,17 @@
 //! ## Quick Start
 //!
 //! ```ignore
-//! use mnk_vmf::vmf::VMF;
+//! use mnk_vmf::VMF;
 //!
 //! let vmf = VMF::open("mymap.vmf")?;
 //! let data = vmf.parse()?;
 //!
 //! for block in data {
 //!     match block {
-//!         vmf::vmf::VMFValue::World(world) => {
+//!         mnk_vmf::VMFValue::World(world) => {
 //!             println!("World has {} solids", world.solids.len());
 //!         }
-//!         vmf::vmf::VMFValue::Entity(entity) => {
+//!         mnk_vmf::VMFValue::Entity(entity) => {
 //!             println!("Entity: {}", entity.classname);
 //!         }
 //!         _ => {}
@@ -31,7 +31,6 @@
 //! - **Fast parsing**: Uses Chumsky parser combinators for efficient token-based parsing
 //! - **Complete VMF support**: Handles versioninfo, visgroups, worlds, entities, solids, displacements, cameras, and more
 //! - **Strong typing**: All VMF constructs are represented as Rust types with proper error handling
-//! - **Flexible**: Supports both sequential parsing and random access to parsed blocks
 //!
 //! ## Modules
 //!
@@ -46,3 +45,4 @@ pub mod vmf;
 
 pub use parser::util;
 pub use parser::Parser;
+pub use vmf::*;

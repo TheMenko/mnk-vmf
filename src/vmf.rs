@@ -22,7 +22,7 @@ pub enum VMFValue<'src> {
     Cordon(Box<Cordon>),
 }
 
-/// Memory-mapped VMF file.
+/// VMF struct with raw file data.
 /// Use `parse()` to get parsed data that borrows from this instance.
 #[allow(clippy::upper_case_acronyms)]
 pub struct VMF {

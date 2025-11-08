@@ -21,13 +21,13 @@ VMF (Valve Map Format) is a text-based file format used by Source Engine level e
 
 ```toml
 [dependencies]
-vmf = "0.1.0"
+mnk_vmf = "0.1.0"
 ```
 
 ### Basic Example
 
 ```rust
-use vmf::VMF;
+use mnk_vmf::VMF;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Open and parse a VMF file
@@ -54,7 +54,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 ### Working with World Geometry
 
 ```rust
-use vmf::{VMF, VMFValue};
+use mnk_vmf::{VMF, VMFValue};
 
 let vmf = VMF::open("map.vmf")?;
 let data = vmf.parse()?;
@@ -70,12 +70,6 @@ for value in data {
         }
     }
 }
-```
-
-Run benchmarks with:
-
-```bash
-cargo bench
 ```
 
 ## Development
@@ -100,7 +94,12 @@ cargo bench
 
 ## License
 
-This project is licensed under the MIT License.
+Licensed under either of
+
+  * Apache License, Version 2.0, (http://www.apache.org/licenses/LICENSE-2.0)
+  * MIT license (http://opensource.org/licenses/MIT)
+
+at your option.
 
 ## Contributing
 
