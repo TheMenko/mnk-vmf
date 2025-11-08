@@ -33,20 +33,22 @@ where
 
 /// Helper to parse a string segment like "1.0 2.5 -3.0" into a [`Point3D`]
 pub(crate) fn parse_point_from_numbers_str(numbers_str: &str) -> Result<Point3D, String> {
-    let parts: Vec<&str> = numbers_str.split_whitespace().collect();
-    if parts.len() != 3 {
-        return Err(format!("expected 3 numbers, found {}", parts.len()));
+    let mut parts = numbers_str.split_whitespace();
+
+    if let (Some(x), Some(y), Some(z)) = (parts.next(), parts.next(), parts.next()) {
+        let x = x
+            .parse::<f32>()
+            .map_err(|e| format!("invalid x '{}': {}", x, e))?;
+        let y = y
+            .parse::<f32>()
+            .map_err(|e| format!("invalid y '{}': {}", y, e))?;
+        let z = z
+            .parse::<f32>()
+            .map_err(|e| format!("invalid z '{}': {}", z, e))?;
+        Ok(Point3D { x, y, z })
+    } else {
+        Err("invalid number of parts".to_string())
     }
-    let x = parts[0]
-        .parse::<f32>()
-        .map_err(|e| format!("invalid x '{}': {}", parts[0], e))?;
-    let y = parts[1]
-        .parse::<f32>()
-        .map_err(|e| format!("invalid y '{}': {}", parts[1], e))?;
-    let z = parts[2]
-        .parse::<f32>()
-        .map_err(|e| format!("invalid z '{}': {}", parts[2], e))?;
-    Ok(Point3D { x, y, z })
 }
 
 /// Parses a "plane" to get tuple of three [`Point3D`]
@@ -60,7 +62,7 @@ where
     quoted_string(key)
         .ignore_then(any_quoted_string())
         .try_map(move |plane_value_str, span| {
-            let mut points = Vec::with_capacity(3);
+            let mut points = [Point3D::default(); 3];
             let mut remainder = plane_value_str.trim();
 
             for i in 0..3 {
@@ -80,7 +82,7 @@ where
                     remainder = &remainder[close_idx + 1..];
 
                     match parse_point_from_numbers_str(numbers_part) {
-                        Ok(point) => points.push(point),
+                        Ok(point) => points[i] = point,
                         Err(err_msg) => {
                             return Err(Rich::custom(
                                 span,

@@ -13,9 +13,12 @@ use crate::{
 /// Represents a cordon entity (tool used to block off parts of the map)
 #[derive(Debug, Default)]
 pub struct Cordon {
-    pub mins: Point3D, // Minimum bounds of the cordon box
-    pub maxs: Point3D, // Maximum bounds of the cordon box
-    pub active: bool,  // Whether the cordon is active
+    /// Minimum bounds of the cordon box
+    pub mins: Point3D,
+    /// Maximum bounds of the cordon box
+    pub maxs: Point3D,
+    /// Whether the cordon is active
+    pub active: bool,
 }
 
 /// Internal [`Cordon`] Properties to be used in a parser impl
