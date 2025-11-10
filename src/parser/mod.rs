@@ -3,13 +3,15 @@ pub(crate) mod lexer;
 pub mod util;
 
 use chumsky::{
+    Parser as ChumskyParser,
     error::{Rich, RichReason},
     extra,
     input::ValueInput,
+    number::{format::STANDARD, number as chumsky_number},
     prelude::*,
     span::SimpleSpan,
-    Parser as ChumskyParser,
 };
+use lexical_core::FromLexical;
 
 /// A shorthand alias for any input source that produces our `lexer::Token` values
 /// along with `SimpleSpan` offsets, and supports value-based parsing (cloning tokens).
@@ -71,16 +73,23 @@ pub trait Parser<'src>: InternalParser<'src> {
     }
 }
 
-/// Parse a number from `T`.
-pub(crate) fn number<'a, T, I>() -> impl ChumskyParser<'a, I, T, TokenError<'a>>
+/// Parse a numeric literal `T` from a `Token::Number(&str)`.
+pub fn number<'src, I, T>() -> impl ChumskyParser<'src, I, T, TokenError<'src>>
 where
-    T: std::str::FromStr,
-    T::Err: std::fmt::Debug,
-    I: TokenSource<'a>,
+    I: TokenSource<'src>,
+    T: FromLexical + 'src,
 {
-    select! { lexer::Token::QuotedText(s) => s }.try_map(|s: &str, span| {
-        s.parse::<T>()
-            .map_err(|_| Rich::custom(span, "integer out of range"))
+    select! { lexer::Token::Number(s) => s }.try_map(|s, span| {
+        let parsed = chumsky_number::<STANDARD, &str, T, extra::Default>().parse(s);
+
+        if parsed.has_errors() {
+            Err(Rich::custom(
+                span,
+                format!("invalid numeric literal: {}", s),
+            ))
+        } else {
+            Ok(parsed.into_result().unwrap())
+        }
     })
 }
 
@@ -89,20 +98,41 @@ pub(crate) fn boolean<'a, I>() -> impl ChumskyParser<'a, I, bool, TokenError<'a>
 where
     I: TokenSource<'a>,
 {
-    quoted_string("1").or(quoted_string("0")).map(|v| match v {
-        "1" => true,
-        "0" => false,
-        _ => unreachable!(),
-    })
+    quoted(number::<_, u8>())
+        .or(quoted(number::<_, u8>()))
+        .map(|v| match v {
+            1 => true,
+            0 => false,
+            _ => unreachable!(),
+        })
 }
 
-/// Parses any string, that is surrounded by quotes.
-pub(crate) fn any_quoted_string<'src, I>(
-) -> impl ChumskyParser<'src, I, &'src str, TokenError<'src>>
+/// Takes a parser and returns a new parser that matches the input surrounded by quotes.
+pub(crate) fn quoted<'src, I, O>(
+    inner: impl ChumskyParser<'src, I, O, TokenError<'src>>,
+) -> impl ChumskyParser<'src, I, O, TokenError<'src>>
 where
     I: TokenSource<'src>,
 {
-    select! { lexer::Token::QuotedText(s) => s }
+    just(lexer::Token::Quote)
+        .ignore_then(inner)
+        .then_ignore(just(lexer::Token::Quote))
+}
+
+fn word<'src, I>() -> impl ChumskyParser<'src, I, &'src str, TokenError<'src>>
+where
+    I: TokenSource<'src>,
+{
+    select! { lexer::Token::Text(s) => s }
+}
+
+/// Parses any string, that is surrounded by quotes.
+pub(crate) fn any_quoted_string<'src, I>()
+-> impl ChumskyParser<'src, I, &'src str, TokenError<'src>>
+where
+    I: TokenSource<'src>,
+{
+    quoted(word())
 }
 
 /// Parses an exact string `input`, that is surrounded by quotes.
@@ -113,9 +143,7 @@ pub(crate) fn quoted_string<'src, I>(
 where
     I: TokenSource<'src>,
 {
-    select! {
-        lexer::Token::QuotedText(s) if s == input => s
-    }
+    quoted(select! { lexer::Token::Text(s) if s == input => s })
 }
 
 /// Takes a `key` string value, and tries to get a value.
@@ -135,11 +163,11 @@ pub(crate) fn key_value_numeric<'src, T, I>(
     key: &'src str,
 ) -> impl ChumskyParser<'src, I, T, TokenError<'src>>
 where
-    T: std::str::FromStr,
+    T: std::str::FromStr + FromLexical,
     T::Err: std::fmt::Debug,
     I: TokenSource<'src>,
 {
-    quoted_string(key).ignore_then(number::<T, I>())
+    quoted_string(key).ignore_then(quoted(number::<I, T>()))
 }
 
 /// Takes a `key` string value, and tries to get a boolean value.
@@ -150,7 +178,7 @@ pub(crate) fn key_value_boolean<'src, I>(
 where
     I: TokenSource<'src>,
 {
-    quoted_string(key).ignore_then(boolean())
+    quoted_string(key).ignore_then(quoted(boolean()))
 }
 
 /// Starts a parser on VMF blocks. VMF block usually starts with a key, then new line and open
@@ -165,8 +193,8 @@ pub(crate) fn open_block<'src, I>(
 where
     I: TokenSource<'src>,
 {
-    just(lexer::Token::Ident(block))
-        .ignore_then(just(lexer::Token::LBracket))
+    just(lexer::Token::Text(block))
+        .ignore_then(just(lexer::Token::LBrace))
         .ignored()
 }
 
@@ -175,7 +203,7 @@ pub(crate) fn close_block<'src, I>() -> impl ChumskyParser<'src, I, (), TokenErr
 where
     I: TokenSource<'src>,
 {
-    just(lexer::Token::RBracket).ignored()
+    just(lexer::Token::RBrace).ignored()
 }
 
 /// Parses and skips any unknown/unrecognized block.
@@ -186,7 +214,7 @@ where
 {
     recursive(|skip_block| {
         any()
-            .filter(|tok| matches!(tok, lexer::Token::Ident(_)))
+            .filter(|tok| matches!(tok, lexer::Token::Text(_)))
             .ignore_then(just(lexer::Token::LBracket))
             .ignore_then(
                 none_of([lexer::Token::LBracket, lexer::Token::RBracket])
@@ -210,7 +238,7 @@ mod tests {
     fn test_number() {
         let stream = lex("\"12345\"");
 
-        let result = number::<u32, _>().parse(stream);
+        let result = quoted(number::<_, u32>()).parse(stream);
         for e in result.errors() {
             println!("error: {:?}", e.reason());
         }
@@ -231,6 +259,9 @@ mod tests {
     fn test_key_value_numeric() {
         let stream = lex(r#""num" "42""#);
         let result = key_value_numeric::<u32, _>("num").parse(stream);
+        for e in result.errors() {
+            println!("error: {:?}", e.reason());
+        }
         assert!(!result.has_errors());
         assert_eq!(result.unwrap(), 42);
     }

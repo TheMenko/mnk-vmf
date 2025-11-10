@@ -1,6 +1,6 @@
-use chumsky::{error::Rich, Parser as ChumskyParser};
+use chumsky::{Parser as ChumskyParser, error::Rich};
 
-use crate::parser::{any_quoted_string, quoted_string, TokenError, TokenSource};
+use crate::parser::{TokenError, TokenSource, any_quoted_string, quoted_string};
 
 #[derive(Debug, Default, Copy, Clone, PartialEq)]
 pub struct Point3D {
@@ -16,7 +16,6 @@ pub(crate) fn key_value_point3d<'src, I>(
 where
     I: TokenSource<'src>,
 {
-    use chumsky::error::Rich;
     quoted_string(key)
         .ignore_then(any_quoted_string())
         .try_map(move |value_str, span| {
@@ -108,7 +107,7 @@ mod tests {
     use chumsky::Parser as _;
 
     use crate::{
-        types::point::{key_value_plane, Point3D},
+        types::point::{Point3D, key_value_plane},
         util::lex,
     };
 

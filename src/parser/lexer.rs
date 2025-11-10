@@ -4,22 +4,35 @@ use logos::Logos;
 pub enum Token<'a> {
     Error,
 
-    #[regex(r#""([^"\\]|\\.)*""#, |lex| &lex.slice()[1..lex.slice().len()-1])]
-    QuotedText(&'a str),
+    #[token("\"")]
+    Quote,
 
-    #[regex(r"[A-Za-z_][A-Za-z0-9_]*")]
-    Ident(&'a str),
+    #[regex(
+            r"(?x)
+            [+-]?
+            (?:[0-9][0-9_]*)
+            (?:\.[0-9][0-9_]*)?
+            (?:[eE][+-]?[0-9][0-9_]*)?
+            ",
+            |lex| lex.slice()
+            , priority = 2)]
+    Number(&'a str),
+
+    #[regex(r#"[^ \t\f\r\n"()\[\]{}]+"#, |lex| lex.slice(), priority = 1)]
+    Text(&'a str),
 
     #[token("(")]
     LParen,
     #[token(")")]
     RParen,
-
-    #[token("{")]
+    #[token("[")]
     LBracket,
-
-    #[token("}")]
+    #[token("]")]
     RBracket,
+    #[token("{")]
+    LBrace,
+    #[token("}")]
+    RBrace,
 
     #[regex(r"[ \t\f\r\n]+", logos::skip)]
     Whitespace,
