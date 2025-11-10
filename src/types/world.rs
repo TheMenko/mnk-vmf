@@ -2,13 +2,12 @@ use chumsky::{IterParser, Parser as ChumskyParser};
 use std::collections::HashMap;
 
 use crate::{
-    impl_block_properties_parser,
+    Parser, impl_block_properties_parser,
     parser::{
-        any_quoted_string, close_block, key_value, key_value_boolean, key_value_numeric,
-        open_block, InternalParser, TokenError, TokenSource,
+        InternalParser, TokenError, TokenSource, any_quoted_string, close_block, key_value,
+        key_value_boolean, key_value_numeric, open_block,
     },
     types::{EditorData, Solid},
-    Parser,
 };
 
 use super::Group;

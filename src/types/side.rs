@@ -1,18 +1,18 @@
 use chumsky::IterParser;
 use chumsky::Parser as ChumskyParser;
 
+use crate::Parser;
 use crate::impl_block_properties_parser;
 use crate::parser::{
-    close_block, key_value, key_value_numeric, open_block, skip_unknown_block, InternalParser,
-    TokenError, TokenSource,
+    InternalParser, TokenError, TokenSource, close_block, key_value, key_value_numeric, open_block,
+    skip_unknown_block,
 };
 use crate::types::point::key_value_plane;
 use crate::types::textureaxis::key_value_texture_axis;
-use crate::Parser;
 
+use super::DispInfo;
 use super::point::Point3D;
 use super::textureaxis::TextureAxis;
-use super::DispInfo;
 
 /// Represents a side (face) of a solid brush
 #[derive(Debug, Default, Clone)]

@@ -2,17 +2,16 @@ use chumsky::{IterParser, Parser as ChumskyParser};
 use std::collections::HashMap;
 
 use crate::{
-    impl_block_properties_parser,
+    Parser, impl_block_properties_parser,
     parser::{
-        any_quoted_string, close_block, key_value, key_value_boolean, key_value_numeric,
-        open_block, quoted_string, InternalParser, TokenError, TokenSource,
+        InternalParser, TokenError, TokenSource, any_quoted_string, close_block, key_value,
+        key_value_boolean, key_value_numeric, open_block, quoted_string,
     },
     types::{
-        entity::{parse_output_entry, EntityOutput},
-        point::{key_value_point3d, Point3D},
         Color, EditorData, Solid,
+        entity::{EntityOutput, parse_output_entry},
+        point::{Point3D, key_value_point3d},
     },
-    Parser,
 };
 
 /// Represents a generic entity in a VMF file
@@ -76,8 +75,8 @@ enum EntityProperty<'src> {
 }
 
 /// Parser for the connections block containing entity outputs
-fn parse_connections_block<'src, I>(
-) -> impl ChumskyParser<'src, I, Vec<EntityOutput<'src>>, TokenError<'src>>
+fn parse_connections_block<'src, I>()
+-> impl ChumskyParser<'src, I, Vec<EntityOutput<'src>>, TokenError<'src>>
 where
     I: TokenSource<'src>,
 {

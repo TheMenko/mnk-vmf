@@ -1,10 +1,9 @@
-use chumsky::{prelude::recursive, IterParser, Parser as ChumskyParser};
+use chumsky::{IterParser, Parser as ChumskyParser, prelude::recursive};
 
 use crate::{
-    impl_block_properties_parser,
-    parser::{close_block, key_value_numeric, open_block, InternalParser, TokenError, TokenSource},
+    Parser, impl_block_properties_parser,
+    parser::{InternalParser, TokenError, TokenSource, close_block, key_value_numeric, open_block},
     types::EditorData,
-    Parser,
 };
 
 #[derive(Debug, Default, Clone)]

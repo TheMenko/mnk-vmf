@@ -1,9 +1,9 @@
 use crate::{
-    parser::{any_quoted_string, quoted_string, InternalParser, TokenError, TokenSource},
     Parser,
+    parser::{InternalParser, TokenError, TokenSource, any_quoted_string, quoted_string},
 };
 
-use chumsky::{error::Rich, Parser as ChumskyParser};
+use chumsky::{Parser as ChumskyParser, error::Rich};
 
 /// Represents an RGB color with three components
 #[derive(Default, Debug, Clone, Copy, PartialEq)]

@@ -1,13 +1,12 @@
 use chumsky::{IterParser, Parser as ChumskyParser};
 
 use crate::{
-    impl_block_properties_parser,
+    Parser, impl_block_properties_parser,
     parser::{
-        close_block, key_value, key_value_boolean, key_value_numeric, open_block, InternalParser,
-        TokenError, TokenSource,
+        InternalParser, TokenError, TokenSource, close_block, key_value, key_value_boolean,
+        key_value_numeric, open_block,
     },
     types::Color,
-    Parser,
 };
 
 /// Represents editor-specific data for entities and brushes

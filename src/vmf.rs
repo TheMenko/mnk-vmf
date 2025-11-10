@@ -3,12 +3,12 @@ use std::path::Path;
 
 use crate::error::VMFError;
 use crate::parser::lexer::TokenIter;
-use crate::parser::{skip_unknown_block, InternalParser};
+use crate::parser::{InternalParser, skip_unknown_block};
 use crate::types::*;
 
-use chumsky::primitive::choice;
 use chumsky::IterParser;
 use chumsky::Parser as ChumskyParser;
+use chumsky::primitive::choice;
 
 /// `VMFValue` holds types of all items from a VMF.
 #[derive(Debug)]

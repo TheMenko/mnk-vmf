@@ -1,7 +1,7 @@
 use chumsky::Parser as ChumskyParser;
 
 use crate::parser::{
-    close_block, key_value_numeric, open_block, InternalParser, Parser, TokenError, TokenSource,
+    InternalParser, Parser, TokenError, TokenSource, close_block, key_value_numeric, open_block,
 };
 
 /// `VersionInfo` holds the VMF Header information.

@@ -1,6 +1,6 @@
-use chumsky::{error::Rich, Parser as ChumskyParser};
+use chumsky::{Parser as ChumskyParser, error::Rich};
 
-use crate::parser::{any_quoted_string, quoted_string, TokenError, TokenSource};
+use crate::parser::{TokenError, TokenSource, any_quoted_string, quoted_string};
 
 #[derive(Debug, Default, Clone, PartialEq)]
 pub struct TextureAxis {
@@ -30,9 +30,9 @@ fn parse_texture_vector_str(numbers_str: &str) -> Result<(f32, f32, f32, f32), S
         let shift = shift_str
             .parse::<f32>()
             .map_err(|e| format!("invalid shift '{}': {}", shift_str, e))?;
-        return Ok((x, y, z, shift));
+        Ok((x, y, z, shift))
     } else {
-        return Err("expected multiple of 3 numbers".into());
+        Err("expected multiple of 3 numbers".into())
     }
 }
 

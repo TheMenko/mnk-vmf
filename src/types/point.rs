@@ -1,6 +1,6 @@
-use chumsky::{error::Rich, Parser as ChumskyParser};
+use chumsky::{Parser as ChumskyParser, error::Rich};
 
-use crate::parser::{any_quoted_string, quoted_string, TokenError, TokenSource};
+use crate::parser::{TokenError, TokenSource, any_quoted_string, quoted_string};
 
 #[derive(Debug, Default, Copy, Clone, PartialEq)]
 pub struct Point3D {
@@ -108,7 +108,7 @@ mod tests {
     use chumsky::Parser as _;
 
     use crate::{
-        types::point::{key_value_plane, Point3D},
+        types::point::{Point3D, key_value_plane},
         util::lex,
     };
 

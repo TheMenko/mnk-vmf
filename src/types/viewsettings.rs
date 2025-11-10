@@ -1,12 +1,11 @@
 use chumsky::{IterParser, Parser as ChumskyParser};
 
 use crate::{
-    impl_block_properties_parser,
+    Parser, impl_block_properties_parser,
     parser::{
-        close_block, key_value_boolean, key_value_numeric, open_block, InternalParser, TokenError,
-        TokenSource,
+        InternalParser, TokenError, TokenSource, close_block, key_value_boolean, key_value_numeric,
+        open_block,
     },
-    Parser,
 };
 
 /// ViewSettings holds all the parameters for an editor
@@ -132,7 +131,7 @@ impl<'src> InternalParser<'src> for ViewSettings {
 
 #[cfg(test)]
 mod tests {
-    use crate::{parser::lexer::Token, util::lex, Parser};
+    use crate::{Parser, parser::lexer::Token, util::lex};
 
     use super::*;
     use chumsky::error::RichReason;

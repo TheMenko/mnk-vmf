@@ -1,13 +1,12 @@
 use chumsky::{IterParser, Parser as ChumskyParser};
 
 use crate::{
-    impl_block_properties_parser,
+    Parser, impl_block_properties_parser,
     parser::{
-        any_quoted_string, close_block, key_value_boolean, key_value_numeric, open_block,
-        quoted_string, InternalParser, TokenError, TokenSource,
+        InternalParser, TokenError, TokenSource, any_quoted_string, close_block, key_value_boolean,
+        key_value_numeric, open_block, quoted_string,
     },
-    types::point::{parse_point_from_numbers_str, Point3D},
-    Parser,
+    types::point::{Point3D, parse_point_from_numbers_str},
 };
 
 /// Represents a displacement vertex

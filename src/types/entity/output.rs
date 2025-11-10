@@ -1,6 +1,6 @@
 use chumsky::Parser as ChumskyParser;
 
-use crate::parser::{any_quoted_string, TokenError, TokenSource};
+use crate::parser::{TokenError, TokenSource, any_quoted_string};
 
 /// Represents an output connection between entities
 #[derive(Debug, Default, Clone)]
@@ -51,8 +51,8 @@ impl<'src> EntityOutput<'src> {
 
 /// Parser for a single output key-value pair
 /// Format: "OutputName" "target,input,parameter,delay,times"
-pub(crate) fn parse_output_entry<'src, I>(
-) -> impl ChumskyParser<'src, I, EntityOutput<'src>, TokenError<'src>>
+pub(crate) fn parse_output_entry<'src, I>()
+-> impl ChumskyParser<'src, I, EntityOutput<'src>, TokenError<'src>>
 where
     I: TokenSource<'src>,
 {

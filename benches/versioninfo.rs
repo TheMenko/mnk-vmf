@@ -1,8 +1,8 @@
-use criterion::{criterion_group, criterion_main, Criterion};
+use criterion::{Criterion, criterion_group, criterion_main};
 use mnk_vmf::{
+    Parser,
     types::VersionInfo,
     util::{stream, tokenize},
-    Parser,
 };
 
 fn bench_versioninfo(c: &mut Criterion) {

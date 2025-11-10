@@ -3,12 +3,12 @@ pub(crate) mod lexer;
 pub mod util;
 
 use chumsky::{
+    Parser as ChumskyParser,
     error::{Rich, RichReason},
     extra,
     input::ValueInput,
     prelude::*,
     span::SimpleSpan,
-    Parser as ChumskyParser,
 };
 
 /// A shorthand alias for any input source that produces our `lexer::Token` values
@@ -97,8 +97,8 @@ where
 }
 
 /// Parses any string, that is surrounded by quotes.
-pub(crate) fn any_quoted_string<'src, I>(
-) -> impl ChumskyParser<'src, I, &'src str, TokenError<'src>>
+pub(crate) fn any_quoted_string<'src, I>()
+-> impl ChumskyParser<'src, I, &'src str, TokenError<'src>>
 where
     I: TokenSource<'src>,
 {

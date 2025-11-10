@@ -1,13 +1,12 @@
 use chumsky::{IterParser, Parser as ChumskyParser};
 
 use crate::{
-    impl_block_properties_parser,
+    Parser, impl_block_properties_parser,
     parser::{
-        close_block, key_value, key_value_boolean, key_value_numeric, open_block, InternalParser,
-        TokenError, TokenSource,
+        InternalParser, TokenError, TokenSource, close_block, key_value, key_value_boolean,
+        key_value_numeric, open_block,
     },
-    types::point::{key_value_point3d, Point3D},
-    Parser,
+    types::point::{Point3D, key_value_point3d},
 };
 
 /// Represents a collection of cameras in the VMF file
